@@ -12,9 +12,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@babylonjs/core": "^8.5.0",
-    "@babylonjs/gui": "^8.5.0",
-    "@babylonjs/loaders": "^8.5.0",
+    "@babylonjs/core": "^8.6.1",
+    "@babylonjs/gui": "^8.6.1",
+    "@babylonjs/inspector": "^8.6.1",
+    "@babylonjs/loaders": "^8.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

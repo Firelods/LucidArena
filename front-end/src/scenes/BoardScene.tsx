@@ -17,7 +17,7 @@ import {
 import '@babylonjs/loaders';
 import { boardTiles } from '../utils/board';
 import '@babylonjs/loaders/glTF'; // Nécessaire pour charger les fichiers .glb
-import { AppendSceneAsync } from '@babylonjs/core/Loading/sceneLoader';
+import { AppendSceneAsync, SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { BabylonEngine } from '../engine/BabylonEngine';
 
 type BoardHandle = {
@@ -30,19 +30,67 @@ const BoardScene = forwardRef<BoardHandle>((_, ref) => {
     const sceneRef = useRef<Scene>(null);
     const playerRef = useRef<any>(null);
     let currentIndex = 0;
+    const initialHeight = 1.2; // Hauteur initiale du personnage
 
     useImperativeHandle(ref, () => ({
         movePlayer: async (steps: number) => {
-            for (let i = 1; i < steps; i++) {
-                const from = boardTiles[currentIndex].clone();
-
-                const to = boardTiles[++currentIndex].clone();
-                from.y = 2;
-                to.y = 2;
-                await animateMove(from, to);
-            }
+          const height = initialHeight;
+          for (let i = 1; i < steps; i++) {
+            const from = boardTiles[currentIndex].clone();
+            const to   = boardTiles[++currentIndex].clone();
+      
+            from.y = height;
+            to.y   = height;
+      
+            await animateJump(from, to);
+          }
         },
-    }));
+      }));
+
+      const getYRotation = (from: Vector3, to: Vector3) => {
+        const dir = to.subtract(from);
+        // atan2(x, z) car Z est l’axe forward
+        return Math.atan2(dir.x, dir.z);
+      };
+
+      const animateJump = (from: Vector3, to: Vector3) => {
+        return new Promise<void>((resolve) => {
+          // rotation instantanée
+          playerRef.current.rotation.y = getYRotation(from, to);
+      
+          const frameRate = 60;
+          const jumpHeight = 1;
+          const midPos = new Vector3(
+            (from.x + to.x) / 2,
+            from.y + jumpHeight,
+            (from.z + to.z) / 2,
+          );
+      
+          const anim = new Animation(
+            'jumpAnim',
+            'position',
+            frameRate,
+            Animation.ANIMATIONTYPE_VECTOR3,
+            Animation.ANIMATIONLOOPMODE_CONSTANT,
+          );
+          anim.setKeys([
+            { frame: 0, value: from.clone() },
+            { frame: frameRate / 2, value: midPos },
+            { frame: frameRate, value: to.clone() },
+          ]);
+      
+          playerRef.current.animations = [anim];
+          sceneRef.current!.beginAnimation(
+            playerRef.current,
+            0,
+            frameRate,
+            false,
+            1,
+            () => resolve(),
+          );
+        });
+      };
+      
 
     const animateMove = (from: Vector3, to: Vector3) => {
         return new Promise<void>((resolve) => {
@@ -97,6 +145,8 @@ const BoardScene = forwardRef<BoardHandle>((_, ref) => {
         light.intensity = 0.8;
         const init = async () => {
             await AppendSceneAsync('/assets/board.glb', scene);
+            const boardRoot = scene.getMeshByName('__root__')!;
+            boardRoot.name = 'boardRoot';
 
             const tiles = scene.meshes
                 .filter((m) => m.name.startsWith('Tile_'))
@@ -109,15 +159,23 @@ const BoardScene = forwardRef<BoardHandle>((_, ref) => {
             boardTiles.push(...tiles);
             console.log('Board tiles:', boardTiles);
 
-            const sphere = MeshBuilder.CreateSphere(
-                'player',
-                { diameter: 1 },
-                scene,
-            );
-            sphere.position = boardTiles[0].clone();
-            sphere.position.y = 2;
-            sphere.parent = scene.getMeshByName('__root__')!;
-            playerRef.current = sphere;
+            // 2) Character
+            await AppendSceneAsync('/assets/character.glb', scene);
+            const characterRoot = scene.getMeshByName('__root__')!;
+            characterRoot.name = 'characterRoot';
+            characterRoot.rotationQuaternion = null; // on annule la rotation quaternion pour pouvoir utiliser la rotation en euler
+            characterRoot.parent = boardRoot; 
+            // positionnement initial
+            characterRoot.position = boardTiles[0].clone();
+            characterRoot.position.y = 1.2;
+            characterRoot.rotation.y = Math.PI / 2; 
+            // on scale le personnage pour qu'il soit plus petit
+            characterRoot.scaling = new Vector3(0.5, 0.5, 0.5);
+
+            // on anime ensuite characterRoot
+            playerRef.current = characterRoot;
+            const initialHeight = characterRoot.position.y;
+            
         };
 
         init(); // lancement de l'init async
