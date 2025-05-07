@@ -40,11 +40,12 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         light.intensity = 0.8;
 
         boardMod.current = new BoardModule(scene);
-        diceMod.current = new DiceModule(scene);
+        diceMod.current = new DiceModule(scene, camera);
 
         (async () => {
             await boardMod.current.init();
             await diceMod.current.init();
+            await diceMod.current.hide();
         })();
 
         return () => {
@@ -55,10 +56,14 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
     useImperativeHandle(ref, () => ({
         async rollAndMove(steps: number) {
+            await diceMod.current.show();
             await diceMod.current.roll(steps);
+            await diceMod.current.hide();
             await boardMod.current.movePlayer(steps);
         },
     }));
+
+    
 
     return <canvas ref={canvasRef} style={{ width: '100%', height: '99%' }} />;
 });

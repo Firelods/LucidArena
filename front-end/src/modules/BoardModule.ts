@@ -1,4 +1,4 @@
-import { Scene, Vector3, Animation } from '@babylonjs/core';
+import { Scene, Vector3, Animation, Tools } from '@babylonjs/core';
 import { AppendSceneAsync } from '@babylonjs/core/Loading/sceneLoader';
 import { boardTiles } from '../utils/board';
 
@@ -28,8 +28,7 @@ export class BoardModule {
         const root = this.scene.getMeshByName('__root__')!;
         root.name = 'characterRoot';
         root.parent = this.scene.getMeshByName('boardRoot')!;
-        root.rotationQuaternion = null;
-        root.rotation = new Vector3(0, 180, 0);
+        root.rotation = new Vector3(0, Tools.ToRadians(180), 0);
         root.scaling = new Vector3(0.5, 0.5, 0.5);
         root.position = boardTiles[0]
             .clone()
