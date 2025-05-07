@@ -1,9 +1,7 @@
-import viteLogo from '/vite.svg';
 import './App.css';
 
 // src/App.tsx
 import React, { useRef } from 'react';
-import BoardScene from './scenes/GameScene';
 import Dice from './components/Dice';
 import GameScene from './scenes/GameScene';
 
