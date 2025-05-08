@@ -1,4 +1,3 @@
-// src/components/GameScene.tsx
 import React, {
   useEffect,
   useRef,
@@ -47,11 +46,10 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     light.intensity = 0.8;
 
     boardMod.current = new BoardModule(scene);
-    // on passe bien camera ici
     diceMod.current = new DiceModule(scene, camera);
 
     (async () => {
-      // init avec 4 persos
+      // init avec 4 persos ( a modifier pour le nombre de joueurs  en fonction du lobby )
       await boardMod.current.init(
         4,
         [

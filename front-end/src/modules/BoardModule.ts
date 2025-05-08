@@ -1,4 +1,3 @@
-// src/modules/BoardModule.ts
 import {
     Scene,
     Vector3,
