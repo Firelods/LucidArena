@@ -138,9 +138,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         "Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?",
         "À tour de rôle, affrontez-vous sur le plateau.",
         "Sur chaque case, découvrez :",
-        "• Un bonus d’étoiles",
-        "• Un mini-jeu pour en gagner davantage",
-        "• Une chance de rejouer",
+        "• Un bonus d’étoiles \n • Un mini-jeu pour en gagner davantage \n • Une chance de rejouer",
         "Le premier à 10 étoiles remporte la partie !",
         "Bonne chance et amusez-vous bien !"
       ]);
