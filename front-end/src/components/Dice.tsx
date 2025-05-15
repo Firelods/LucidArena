@@ -24,7 +24,7 @@ return (
     }}
     >
     <img
-        src={'assets/bouton_dice.png'}
+        src={'/assets/bouton_dice.png'}
         alt="Roll Dice"
         style={{
         display: 'block',
