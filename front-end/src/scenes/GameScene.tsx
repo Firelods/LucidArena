@@ -30,10 +30,10 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     // caméra + contrôle
     const camera = new ArcRotateCamera(
       'camera',
-      -Math.PI / 2,
+      -1,
       Math.PI / 3,
-      10,
-      Vector3.Zero(),
+      20,
+      new Vector3(10, 2, 9),
       scene
     );
     camera.attachControl(canvasRef.current, true);
