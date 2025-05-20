@@ -1,14 +1,27 @@
 import { useRef } from 'react';
 import Dice from './components/Dice';
 import GameScene from './scenes/GameScene';
+import { SceneManager } from './engine/SceneManager';
+import { useState, useEffect } from 'react';
 
 export default function Game() {
-    const gameRef = useRef<{ rollAndMove: (n: number) => Promise<void> }>(null);
+  const gameRef = useRef<{ rollAndMove: (n: number) => Promise<void> }>(null);
+  const sceneManagerRef = useRef<SceneManager | null>(null);
+  const [shouldShowDice, setShouldShowDice] = useState(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentScene = sceneManagerRef.current?.getActiveSceneName();
+      setShouldShowDice(currentScene === 'main');
+    }, 200);
 
-    return (
-        <div className="w-screen h-screen relative">
-            <GameScene ref={gameRef} />
-            <Dice onRoll={(n: number) => gameRef.current?.rollAndMove(n)} />
-        </div>
-    );
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-screen h-screen relative">
+      <GameScene ref={gameRef} />
+
+      <Dice onRoll={(n) => gameRef.current?.rollAndMove(n)} />
+    </div>
+  );
 }

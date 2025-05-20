@@ -2,34 +2,44 @@
 import { Engine, Scene } from '@babylonjs/core';
 
 export class SceneManager {
-    private engine: Engine;
-    private scenes: Record<string, Scene> = {};
-    private active?: Scene;
+  private engine: Engine;
+  private scenes: Record<string, Scene> = {};
+  private active?: Scene;
 
-    constructor(engine: Engine) {
-        this.engine = engine;
-    }
+  constructor(engine: Engine) {
+    this.engine = engine;
+  }
 
-    createScene(name: string, init: (scene: Scene) => void) {
-        const scene = new Scene(this.engine);
-        init(scene);
-        this.scenes[name] = scene;
-        return scene;
-    }
+  createScene(name: string, init: (scene: Scene) => void) {
+    const scene = new Scene(this.engine);
+    init(scene);
+    this.scenes[name] = scene;
+    return scene;
+  }
 
-    switchTo(name: string) {
-        if (this.active && this.active !== this.scenes[name]) {
-            this.active.dispose();
-        }
-        this.active = this.scenes[name];
+  switchTo(name: string) {
+    if (this.active && this.active !== this.scenes[name]) {
+      this.active.dispose();
     }
+    this.active = this.scenes[name];
+  }
 
-    run() {
-        this.engine.runRenderLoop(() => {
-            if (this.active) {
-                this.active.render();
-            }
-        });
-        window.addEventListener('resize', () => this.engine.resize());
-    }
+  run() {
+    this.engine.runRenderLoop(() => {
+      if (this.active) {
+        this.active.render();
+      }
+    });
+    window.addEventListener('resize', () => this.engine.resize());
+  }
+
+  getActiveScene() {
+    return this.active;
+  }
+
+  getActiveSceneName() {
+    return Object.keys(this.scenes).find(
+      (name) => this.scenes[name] === this.active,
+    );
+  }
 }
