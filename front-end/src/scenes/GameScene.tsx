@@ -19,6 +19,7 @@ import {
 import { SceneManager } from '../engine/SceneManager';
 import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initMiniGame1 } from './MiniGame1';
+import { initCloudGame } from './CloudGame';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -136,8 +137,13 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
       // déplace le joueur courant
       await boardMod.current.movePlayer(currentPlayer, steps);
-      sceneMgrRef.current?.switchTo('mini1');
-      currentPlayer = (currentPlayer + 1) % playerCount;
+
+
+      await diceMod.current.hide();
+      sceneMgrRef.current?.createScene('CloudGame', initCloudGame);
+
+      sceneMgrRef.current?.switchTo('CloudGame');
+      currentPlayer = (currentPlayer + 1) % playerCount; 
     },
   }));
 

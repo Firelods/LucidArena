@@ -21,9 +21,4 @@ export async function initMiniGame1(scene: Scene): Promise<void> {
   // lumière
   new HemisphericLight('lightMini1', new Vector3(0, 1, 0), scene).intensity =
     0.5;
-
-  // logique de votre mini-jeu (ex. dé spécial, obstacles…)
-  const dice = new DiceModule(scene, camera);
-  await dice.init();
-  // …
 }
