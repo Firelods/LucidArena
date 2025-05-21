@@ -22,6 +22,7 @@ export async function initCloudGame(scene: Scene): Promise<void> {
     scene,
   );
   camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
+  camera.detachControl();
 
   // 2) Lumière
   new HemisphericLight(
@@ -129,7 +130,7 @@ export async function initCloudGame(scene: Scene): Promise<void> {
   {
     const zoneLength = trackLength * 0.2;
     // on retire 2*paddingZ pour laisser la bande hors des padding, puis on divise par 2 pour avoir un décalage max
-    const maxOffset = (trackLength - 2 * paddingZ - zoneLength ) / 2;
+    const maxOffset = (trackLength - 2 * paddingZ - zoneLength) / 2;
     // randomOffset entre -maxOffset et +maxOffset
     const randomOffset = Math.random() * 2 * maxOffset - maxOffset;
     // centre Z de la zone
