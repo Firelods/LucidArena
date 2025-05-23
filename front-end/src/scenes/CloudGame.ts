@@ -23,8 +23,12 @@ export async function initCloudGame(scene: Scene): Promise<void> {
     Vector3.Zero(),
     scene,
   );
-  camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
-  camera.detachControl();
+
+  const canvas = scene.getEngine().getRenderingCanvas() as HTMLCanvasElement;
+  canvas.tabIndex = 0; // rend le canvas focalisable :contentReference[oaicite:0]{index=0}
+  canvas.style.outline = 'none'; // supprime le contour de focus si vous le souhaitez
+  // 1) Forcer le focus immédiatement
+  canvas.focus();
 
   // 2) Lumière principale
   new HemisphericLight(
@@ -177,27 +181,38 @@ export async function initCloudGame(scene: Scene): Promise<void> {
     }
   }
 
-  // 8) Mécanique : appui long sur Entrée pour lancer l’étoile une seule fois
+  // 8) Mécanique : appui long sur Espace pour lancer l’étoile une seule fois
   let pressStart = 0;
-  const maxPressTime = 5; // secondes max
-  const maxDistance = 100; // distance max
-  let currentIndex = 0; // quelle étoile lancer
-  let hasThrown = false; // <- drapeau pour n’autoriser qu’un seul press
+  const maxPressTime = 5; // secondes max d’appui prises en compte
+  const maxDistance = 50; // distance max de lancer
+  let currentIndex = 0; // indice de l’étoile à lancer
+  let hasThrown = false; // empêche tout second lancer
 
   scene.onKeyboardObservable.add((kbInfo) => {
-    // si on a déjà lancé, ou ce n'est pas la touche Enter, on sort
-    if (hasThrown || kbInfo.event.code !== 'Enter') {
+    // 1) On ne traite que la barre d’espace et un seul lancer
+    if (hasThrown || kbInfo.event.code !== 'Space') {
       return;
     }
 
-    if (kbInfo.type === KeyboardEventTypes.KEYDOWN) {
+    // 2) Enregistrement du début d’appui
+    if (kbInfo.type === KeyboardEventTypes.KEYDOWN && !pressStart) {
       pressStart = performance.now();
-    } else if (kbInfo.type === KeyboardEventTypes.KEYUP) {
-      // on calcule la durée d’appui
+    }
+    // 3) Au relâchement, calcul de la durée et de la distance
+    else if (kbInfo.type === KeyboardEventTypes.KEYUP) {
+      // durée en secondes
       const duration = (performance.now() - pressStart) / 1000;
-      const t = Math.min(duration / maxPressTime, 1);
-      const distance = t * maxDistance * 2;
+
+      // on limite la durée à maxPressTime
+      const clamped = Math.min(duration, maxPressTime);
+      // mapping linéaire [0, maxPressTime] → [0, maxDistance]
+      const distance = (clamped / maxPressTime) * maxDistance;
+
+      // on récupère l’étoile et on applique la mécanique de lancer
       const star = stars[currentIndex];
+      // Ex. : star.physicsImpostor.applyImpulse(direction.scale(distance), star.getAbsolutePosition());
+
+      hasThrown = true; // plus de second lancer possible
 
       // on crée et démarre l’anim directement sur star
       const anim = new Animation(
