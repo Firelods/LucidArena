@@ -22,8 +22,13 @@ import {
   TextBlock,
 } from '@babylonjs/gui';
 import { Inspector } from '@babylonjs/inspector';
+import { SceneManager } from '../engine/SceneManager';
 
-export async function initCloudGame(scene: Scene): Promise<void> {
+export async function initCloudGame(
+  scene: Scene,
+  sceneMgr: SceneManager,
+): Promise<void> {
+  // 0) Récupération de la scène
   // 1) Caméra fixe
   const camera = new ArcRotateCamera(
     'camCloudGame',
@@ -201,37 +206,70 @@ export async function initCloudGame(scene: Scene): Promise<void> {
     scene,
   );
 
-  // Score data
-  const scores = new Array(stars.length).fill(0);
+  // 1) Créez un panel global semi-transparent
+  const scorePanel = new Rectangle('scorePanel');
+  scorePanel.width = '90%';
+  scorePanel.height = '60px';
+  scorePanel.cornerRadius = 10;
+  scorePanel.background = 'rgba(0, 0, 0, 0.5)'; // fond sombre semi-transparent
+  scorePanel.thickness = 0;
+  scorePanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  scorePanel.top = '10px';
+  scoreGUI.addControl(scorePanel);
 
-  // Grid pour le scoreboard
+  // 2) Configurez la grid à l’intérieur du panel
   const gridUI = new Grid();
   stars.forEach(() => gridUI.addColumnDefinition(1));
   gridUI.width = '100%';
-  gridUI.height = '40px';
-  gridUI.top = '10px';
+  gridUI.height = '100%';
   gridUI.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
   gridUI.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  scoreGUI.addControl(gridUI);
+  scorePanel.addControl(gridUI);
 
-  Inspector.Show(scene, { embedMode: true });
+  // 3) Pour chaque colonne, on crée une cellule colorée
+  const playerNames = [
+    'Orange Player',
+    'Pink Player',
+    'Blue Player',
+    'Green Player',
+  ];
+  const playerColors = ['#f39c12', '#e91e63', '#3498db', '#2ecc71'];
 
-  // Création des TextBlocks du scoreboard
+  const scores = new Array(stars.length).fill(0);
+
+  // 2) Pour chaque colonne, créez la cellule ET le TextBlock avec le nom/color dès le début
   const textBlocks: TextBlock[] = [];
   stars.forEach((_, i) => {
-    const tb = new TextBlock();
-    tb.text = `Joueur ${i + 1}: 0/3`;
+    // cellule arrondie colorée
+    const cell = new Rectangle(`cell${i}`);
+    cell.width = 1;
+    cell.height = '100%';
+    cell.cornerRadius = 8;
+    cell.thickness = 2;
+    cell.color = '#fff'; // bordure blanche
+    cell.background = playerColors[i]; // couleur de fond par joueur
+    cell.paddingLeft = '8px';
+    cell.paddingRight = '8px';
+    cell.paddingTop = '5px';
+    cell.paddingBottom = '5px';
+    gridUI.addControl(cell, 0, i);
+
+    // TextBlock avec nom + score initial
+    const tb = new TextBlock(`scoreText${i}`, `${playerNames[i]} : 0/3`);
     tb.color = 'white';
-    tb.fontSize = 20;
+    tb.fontSize = 22;
+    tb.fontFamily = 'Arial Black';
     tb.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    tb.width = '100%';
-    gridUI.addControl(tb, 0, i);
+    tb.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    cell.addControl(tb);
+
     textBlocks.push(tb);
   });
 
+  // 3) Simplifiez la mise à jour
   function updateScoreboard() {
     scores.forEach((v, i) => {
-      textBlocks[i].text = `Joueur ${i + 1}: ${v}/3`;
+      textBlocks[i].text = `${playerNames[i]} : ${v}/3`;
     });
   }
 
@@ -346,12 +384,19 @@ export async function initCloudGame(scene: Scene): Promise<void> {
         updateScoreboard();
 
         if (scores[winner] >= 3) {
-          // fin de partie
-          showPopups([`🎉 Joueur ${winner + 1} remporte la partie !`]);
+          // fin de partie : on affiche d'abord la victoire...
+          showPopups([`🎉 Joueur ${winner + 1} remporte la partie !`])
+            // ...puis le gain d'une étoile...
+            .then(() => showPopups(['⭐️ Il remporte alors une étoile !']))
+            // ...puis on retourne à la scène principale
+            .then(() => {
+              sceneMgr.switchTo('main');
+            });
         } else {
           // manche suivante
-          showPopups([`Manche gagnée par le joueur ${winner + 1}`]);
-          showPopups([`🔄 Manche suivante !`]).then(resetRound);
+          showPopups([`Manche gagnée par le joueur ${winner + 1}`])
+            .then(() => showPopups([`🔄 Manche suivante !`]))
+            .then(resetRound);
         }
       };
     }

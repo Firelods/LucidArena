@@ -8,7 +8,6 @@ export default function Game() {
     return (
         <div className="w-screen h-screen relative">
             <GameScene ref={gameRef} />
-            <Dice onRoll={(n: number) => gameRef.current?.rollAndMove(n)} />
         </div>
     );
 }
