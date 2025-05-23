@@ -7,7 +7,6 @@ import {
   Animation,
   KeyboardEventTypes,
   Mesh,
-  BounceEase,
   EasingFunction,
   QuadraticEase,
   SineEase,
@@ -24,6 +23,7 @@ import {
   Rectangle,
   Grid,
   TextBlock,
+  Image as GUIImage,
 } from '@babylonjs/gui';
 import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
@@ -229,6 +229,23 @@ export async function initCloudGame(
   gridUI.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
   scorePanel.addControl(gridUI);
 
+  const inputGUI = AdvancedDynamicTexture.CreateFullscreenUI(
+    'inputUI',
+    true,
+    scene,
+  );
+
+  const spaceIcon = new GUIImage('spaceIcon', '/assets/space-icon.png');
+  spaceIcon.width = '150px';
+  spaceIcon.height = '150px';
+
+  spaceIcon.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  spaceIcon.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+  spaceIcon.left = '20px';
+  spaceIcon.top = '-20px';
+  spaceIcon.alpha = 0.3;
+  inputGUI.addControl(spaceIcon);
+
   // 3) Pour chaque colonne, on crée une cellule colorée
   const playerNames = [
     'Orange Player',
@@ -275,10 +292,11 @@ export async function initCloudGame(
       textBlocks[i].text = `${playerNames[i]} : ${v}/3`;
     });
   }
+  const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
 
-  // Helper pour les popups
-  async function showPopups(msgs: string[]) {
-    return new Promise<void>((res) => {
+  async function showPopups(messages: string[]): Promise<void> {
+    return new Promise((resolve) => {
+      let idx = 0;
       const panel = new Rectangle('panel');
       panel.width = '50%';
       panel.height = '200px';
@@ -286,11 +304,11 @@ export async function initCloudGame(
       panel.background = '#dfe8ed';
       panel.color = '#34acec';
       panel.thickness = 4;
-      panel.shadowBlur = 8;
       panel.shadowColor = '#34acec';
-      popupGUI.addControl(panel);
+      panel.shadowBlur = 8;
+      gui.addControl(panel);
 
-      const txt = new TextBlock();
+      const txt = new TextBlock('txt', '');
       txt.textWrapping = true;
       txt.fontFamily = 'Bangers, cursive';
       txt.fontSize = 20;
@@ -301,16 +319,15 @@ export async function initCloudGame(
       btn.width = '50px';
       btn.height = '50px';
       btn.cornerRadius = 25;
-      btn.top = '70px';
+      btn.top = '55px';
       panel.addControl(btn);
 
-      let idx = 0;
       const next = () => {
-        if (idx >= msgs.length) {
+        if (idx >= messages.length) {
           panel.dispose();
-          res();
+          resolve();
         } else {
-          txt.text = msgs[idx++];
+          txt.text = messages[idx++];
         }
       };
       btn.onPointerUpObservable.add(next);
@@ -350,10 +367,14 @@ export async function initCloudGame(
 
   // 9) Gestion du lancer
   scene.onKeyboardObservable.add((info) => {
+    if (info.event.code === 'Space') {
+      spaceIcon.alpha = info.type === KeyboardEventTypes.KEYDOWN ? 1.0 : 0.3;
+    }
     if (thrown || info.event.code !== 'Space') return;
 
     if (info.type === KeyboardEventTypes.KEYDOWN && pressStart === 0) {
       pressStart = performance.now();
+      spaceIcon.alpha = info.type === KeyboardEventTypes.KEYDOWN ? 1.0 : 0.3;
     } else if (info.type === KeyboardEventTypes.KEYUP) {
       const dur = (performance.now() - pressStart) / 1000;
       const clamped = Math.min(dur, maxPress);

@@ -93,14 +93,13 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
           txt.fontFamily = 'Bangers, cursive';
           txt.fontSize = 20;
           txt.color = '#333b40';
-          txt.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
           panel.addControl(txt);
 
           const btn = Button.CreateSimpleButton('btn', '➜');
           btn.width = '50px';
           btn.height = '50px';
           btn.cornerRadius = 25;
-          btn.top = '70px';
+          btn.top = '55px';
           panel.addControl(btn);
 
           const next = () => {
@@ -127,35 +126,18 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       ]);
 
       // 1) Création du bouton BabylonJS
-      const rollBtn = Button.CreateSimpleButton('rollBtn', '');
-      rollBtn.width = '60px';
-      rollBtn.height = '60px';
+      const rollBtn = Button.CreateImageOnlyButton('rollBtn', '/assets/bouton_dice.png');
+      rollBtn.width = '80px';
+      rollBtn.height = '80px';
       rollBtn.cornerRadius = 15;
       rollBtn.background = 'white';
-      rollBtn.thickness = 2;
-      rollBtn.color = '#444';
+      rollBtn.thickness = 5;
+      rollBtn.color = 'white';
       rollBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
       rollBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
       rollBtn.left = '-20px';
       rollBtn.top = '-20px';
 
-      // 2) Rectangle masque pour arrondir l'image
-      const imgMask = new Rectangle('imgMask');
-      imgMask.width = rollBtn.width;
-      imgMask.height = rollBtn.height;
-      imgMask.cornerRadius = rollBtn.cornerRadius;
-      imgMask.thickness = 0;
-      imgMask.background = 'transparent';
-      imgMask.clipChildren = true;
-      rollBtn.addControl(imgMask);
-
-      // 3) Ajout de l'image dans le masque
-      const diceImg = new GUIImage('diceImg', '/assets/bouton_dice.png');
-      diceImg.width = '80%';
-      diceImg.height = '80%';
-      diceImg.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-      diceImg.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-      imgMask.addControl(diceImg);
 
       // 4) Ajout du bouton à la GUI
       gui.addControl(rollBtn);
