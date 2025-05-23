@@ -19,6 +19,7 @@ import {
 import { SceneManager } from '../engine/SceneManager';
 import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initMiniGame1 } from './MiniGame1';
+import { initClickerGame } from './ClickerGame';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -128,15 +129,22 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
   useImperativeHandle(ref, () => ({
     async rollAndMove(steps: number) {
-      sceneMgrRef.current?.createScene('mini1', initMiniGame1);
       // affiche + lance le dé
       await diceMod.current.show();
       await diceMod.current.roll(steps);
       await diceMod.current.hide();
 
+      
+
       // déplace le joueur courant
       await boardMod.current.movePlayer(currentPlayer, steps);
-      sceneMgrRef.current?.switchTo('mini1');
+
+      // Cache le dé
+      await diceMod.current.hide();
+
+      
+      sceneMgrRef.current?.createScene('clickerGame', initClickerGame);
+      sceneMgrRef.current?.switchTo('clickerGame');
       currentPlayer = (currentPlayer + 1) % playerCount;
     },
   }));
