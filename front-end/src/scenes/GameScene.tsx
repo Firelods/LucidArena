@@ -1,4 +1,4 @@
-import React, {
+import {
   useEffect,
   useRef,
   forwardRef,
@@ -14,7 +14,6 @@ import {
   Control,
   Rectangle,
   TextBlock,
-  Image as GUIImage,
 } from '@babylonjs/gui';
 
 import { SceneManager } from '../engine/SceneManager';
@@ -174,6 +173,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       await diceMod.current.hide();
       await boardMod.current.movePlayer(currentPlayer, steps);
       sceneMgrRef.current?.switchTo('CloudGame');
+      
       currentPlayer = (currentPlayer + 1) % playerCount;
     },
   }));
