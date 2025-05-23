@@ -14,10 +14,10 @@ import {
   Control,
   Rectangle,
   TextBlock,
+  Image,
 } from '@babylonjs/gui';
 
 import { SceneManager } from '../engine/SceneManager';
-import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
 
@@ -72,8 +72,8 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         return new Promise((resolve) => {
           let idx = 0;
           const panel = new Rectangle('panel');
-          panel.width = '60%';
-          panel.height = '220px';
+          panel.width = '50%';
+          panel.height = '200px';
           panel.cornerRadius = 20;
           panel.background = '#dfe8ed';
           panel.color = '#34acec';
@@ -85,7 +85,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
           const txt = new TextBlock('txt', '');
           txt.textWrapping = true;
           txt.fontFamily = 'Bangers, cursive';
-          txt.fontSize = 26;
+          txt.fontSize = 20;
           txt.color = '#333b40';
           txt.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
           panel.addControl(txt);
@@ -100,8 +100,8 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
           const next = () => {
             if (idx >= messages.length) {
               panel.dispose();
-              gui.dispose();
               resolve();
+
             } else {
               txt.text = messages[idx++];
             }
@@ -109,6 +109,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
           btn.onPointerUpObservable.add(next);
           next();
         });
+        
       }
 
       await showPopups([
@@ -119,10 +120,43 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         'Le premier à 10 étoiles remporte la partie !',
         'Bonne chance et amusez-vous bien !',
       ]);
+     const rollBtn = Button.CreateSimpleButton('rollBtn', '');
+rollBtn.width  = '60px';                      // largeur fixe
+rollBtn.height = '60px';                      // hauteur identique => carré
+rollBtn.cornerRadius = 15;                    // bords bien arrondis
+rollBtn.background   = 'white';               // fond blanc (ou 'transparent')
+rollBtn.thickness    = 2;                     // épaisseur de la bordure
+rollBtn.color        = '#444';                // couleur de la bordure
+rollBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+rollBtn.verticalAlignment   = Control.VERTICAL_ALIGNMENT_BOTTOM;
+rollBtn.left = '-20px';
+rollBtn.top  = '-20px';
+  
+// ajoute ton image à l’intérieur du bouton (tout de suite après)
+const diceImg = new Image('diceImg', '/assets/bouton_dice.png');
+diceImg.width  = '80%';   // un peu de marge intérieure
+diceImg.height = '80%';
+rollBtn.addControl(diceImg);
+
+gui.addControl(rollBtn);
+
+rollBtn.onPointerUpObservable.add(async () => {
+  const n = Math.floor(Math.random() * 6) + 1;
+  await diceMod.current.show();
+  await diceMod.current.roll(n);
+  await diceMod.current.hide();
+  await boardMod.current.movePlayer(currentPlayer, n);
+  currentPlayer = (currentPlayer + 1) % playerCount;
+
+   sceneMgrRef.current?.switchTo('CloudGame');
+});
     });
 
-    sceneMgr.switchTo('main');
+    sceneMgrRef.current?.createScene('CloudGame', (scene) => {
+        initCloudGame(scene, sceneMgr)
+      });
     sceneMgr.run();
+    sceneMgr.switchTo('main');
 
     return () => be.getEngine().dispose();
   }, []);
@@ -138,9 +172,9 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       // déplace le joueur courant
       await boardMod.current.movePlayer(currentPlayer, steps);
 
-
+    
       await diceMod.current.hide();
-      sceneMgrRef.current?.createScene('CloudGame', initCloudGame);
+      
 
       sceneMgrRef.current?.switchTo('CloudGame');
       currentPlayer = (currentPlayer + 1) % playerCount; 
