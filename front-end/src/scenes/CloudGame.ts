@@ -7,6 +7,10 @@ import {
   Animation,
   KeyboardEventTypes,
   Mesh,
+  BounceEase,
+  EasingFunction,
+  QuadraticEase,
+  SineEase,
 } from '@babylonjs/core';
 import { AppendSceneAsync } from '@babylonjs/core/Loading/sceneLoader';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
@@ -211,7 +215,6 @@ export async function initCloudGame(
   scorePanel.width = '90%';
   scorePanel.height = '60px';
   scorePanel.cornerRadius = 10;
-  scorePanel.background = 'rgba(0, 0, 0, 0.5)'; // fond sombre semi-transparent
   scorePanel.thickness = 0;
   scorePanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
   scorePanel.top = '10px';
@@ -277,8 +280,8 @@ export async function initCloudGame(
   async function showPopups(msgs: string[]) {
     return new Promise<void>((res) => {
       const panel = new Rectangle('panel');
-      panel.width = '60%';
-      panel.height = '220px';
+      panel.width = '50%';
+      panel.height = '200px';
       panel.cornerRadius = 20;
       panel.background = '#dfe8ed';
       panel.color = '#34acec';
@@ -290,7 +293,7 @@ export async function initCloudGame(
       const txt = new TextBlock();
       txt.textWrapping = true;
       txt.fontFamily = 'Bangers, cursive';
-      txt.fontSize = 26;
+      txt.fontSize = 20;
       txt.color = '#333b40';
       panel.addControl(txt);
 
@@ -354,50 +357,81 @@ export async function initCloudGame(
     } else if (info.type === KeyboardEventTypes.KEYUP) {
       const dur = (performance.now() - pressStart) / 1000;
       const clamped = Math.min(dur, maxPress);
-      const dist = (clamped / maxPress) * maxDist;
       const star = stars[current];
 
       pressStart = 0;
       thrown = true;
 
-      const anim = new Animation(
+      // 1) Paramètres
+      const frameRate = 60; // 60 fps
+      const totalFrame = 120; // 120 images → 2 s
+      const dist = (clamped / maxPress) * maxDist;
+      const jumpHeight = 2; // hauteur du saut
+      const startY = star.position.y;
+
+      // 1) Animation translation Z “lancer”
+      const throwAnim = new Animation(
         'throw',
         'position.z',
-        60,
+        frameRate,
         Animation.ANIMATIONTYPE_FLOAT,
         Animation.ANIMATIONLOOPMODE_CONSTANT,
       );
-      anim.setKeys([
+      throwAnim.setKeys([
         { frame: 0, value: star.position.z },
-        { frame: 10, value: star.position.z + dist },
+        { frame: totalFrame, value: star.position.z + dist },
       ]);
-      star.animations = [anim];
+      const sineEase = new SineEase();
+      sineEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+      throwAnim.setEasingFunction(sineEase);
 
-      const animatable = scene.beginDirectAnimation(star, [anim], 0, 10, false);
+      // 2) Animation saut Y
+      const jumpAnim = new Animation(
+        'jump',
+        'position.y',
+        frameRate,
+        Animation.ANIMATIONTYPE_FLOAT,
+        Animation.ANIMATIONLOOPMODE_CONSTANT,
+      );
+      jumpAnim.setKeys([
+        { frame: 0, value: startY },
+        { frame: totalFrame / 2, value: startY + jumpHeight },
+        { frame: totalFrame, value: startY },
+      ]);
+      const quadEase = new QuadraticEase();
+      quadEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+      jumpAnim.setEasingFunction(quadEase);
+
+      // 4) On combine toutes les animations
+      star.animations = [throwAnim, jumpAnim];
+      const animatable = scene.beginAnimation(star, 0, totalFrame, false);
+
       animatable.onAnimationEnd = () => {
-        // calcul du gagnant de la manche
-        const dists = stars.map((s) => Math.abs(s.position.z - zoneCenterZ));
-        const minD = Math.min(...dists);
-        const winner = dists.findIndex((d) => d === minD);
+        setTimeout(() => {
+          // calcul du gagnant de la manche
+          const dists = stars.map((s) => Math.abs(s.position.z - zoneCenterZ));
+          const minD = Math.min(...dists);
+          const winner = dists.findIndex((d) => d === minD);
 
-        scores[winner]++;
-        updateScoreboard();
+          scores[winner]++;
+          updateScoreboard();
 
-        if (scores[winner] >= 3) {
-          // fin de partie : on affiche d'abord la victoire...
-          showPopups([`🎉 Joueur ${winner + 1} remporte la partie !`])
-            // ...puis le gain d'une étoile...
-            .then(() => showPopups(['⭐️ Il remporte alors une étoile !']))
-            // ...puis on retourne à la scène principale
-            .then(() => {
-              sceneMgr.switchTo('main');
-            });
-        } else {
-          // manche suivante
-          showPopups([`Manche gagnée par le joueur ${winner + 1}`])
-            .then(() => showPopups([`🔄 Manche suivante !`]))
-            .then(resetRound);
-        }
+          if (scores[winner] >= 3) {
+            // fin de partie : on affiche d'abord la victoire...
+            showPopups([`🎉 Joueur ${winner + 1} remporte la partie !`])
+              // ...puis le gain d'une étoile...
+              .then(() => showPopups(['⭐️ Il remporte alors une étoile !']))
+              // ...puis on retourne à la scène principale
+              .then(() => {
+                sceneMgr.switchTo('main');
+              });
+          } else {
+            // manche suivante
+            showPopups([`Manche gagnée par le joueur ${winner + 1}`])
+              .then(() => showPopups([`🔄 Manche suivante !`]))
+              .then(resetRound);
+          }
+        }, 1500);
       };
     }
   });
