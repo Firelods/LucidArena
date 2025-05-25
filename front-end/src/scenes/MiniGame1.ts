@@ -4,7 +4,6 @@ import {
   Vector3,
   HemisphericLight,
 } from '@babylonjs/core';
-import { DiceModule } from '../modules/DiceModule';
 
 export async function initMiniGame1(scene: Scene): Promise<void> {
   // camera dédiée au mini-jeu
