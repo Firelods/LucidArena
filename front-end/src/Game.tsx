@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import Dice from './components/Dice';
 import GameScene from './scenes/GameScene';
 
 export default function Game() {
