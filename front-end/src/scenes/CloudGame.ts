@@ -42,8 +42,8 @@ export async function initCloudGame(
     Vector3.Zero(),
     scene,
   );
-  scene.activeCamera = camera;
-  camera.inputs.clear();
+  camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
+  camera.detachControl();
 
   // Prépare le canvas pour recevoir le focus clavier
   const canvas = scene.getEngine().getRenderingCanvas() as HTMLCanvasElement;
@@ -355,6 +355,18 @@ export async function initCloudGame(
     pressStart = 0;
   }
 
+  // 8 bis) Reset de la partie (lot de 3 manches)
+  function resetMatch() {
+    // 1) Réinitialise tous les scores à 0
+    scores.fill(0);
+
+    // 2) Met à jour l'affichage du scoreboard
+    updateScoreboard();
+
+    // 3) Réinitialise la première manche
+    resetRound();
+  }
+
   // Popups d'intro
   await showPopups([
     'Bienvenue dans Cloud Game !',
@@ -363,6 +375,7 @@ export async function initCloudGame(
     'Le joueur le plus proche du centre gagne la manche !',
     'Le premier à 3 points gagne la partie !',
   ]);
+
   resetRound();
 
   // 9) Gestion du lancer
@@ -443,6 +456,9 @@ export async function initCloudGame(
               // ...puis le gain d'une étoile...
               .then(() => showPopups(['⭐️ Il remporte alors une étoile !']))
               // ...puis on retourne à la scène principale
+              .then(() => {
+                resetMatch();
+              })
               .then(() => {
                 sceneMgr.switchTo('main');
               });
