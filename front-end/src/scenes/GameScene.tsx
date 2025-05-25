@@ -51,7 +51,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         new Vector3(10, 2, 9),
         scene
       );
-      camera.attachControl(canvasRef.current, true);
+      scene.activeCamera = camera;
 
       // Lumière
       const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
@@ -149,6 +149,8 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         await diceMod.current.hide();
         await boardMod.current.movePlayer(currentPlayer, n);
         currentPlayer = (currentPlayer + 1) % playerCount;
+        sceneMgrRef.current?.switchTo('CloudGame');
+
       });
     });
 
@@ -171,7 +173,8 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       await diceMod.current.roll(steps);
       await diceMod.current.hide();
       await boardMod.current.movePlayer(currentPlayer, steps);
-      
+      sceneMgrRef.current?.switchTo('CloudGame');
+
       currentPlayer = (currentPlayer + 1) % playerCount;
     },
   }));
