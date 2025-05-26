@@ -25,7 +25,6 @@ import {
   TextBlock,
   Image as GUIImage,
 } from '@babylonjs/gui';
-import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
 
 export async function initCloudGame(
