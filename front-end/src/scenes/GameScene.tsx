@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-} from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
@@ -17,13 +12,9 @@ import {
 } from '@babylonjs/gui';
 
 import { SceneManager } from '../engine/SceneManager';
-<<<<<<< HEAD
 import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initRainingGame } from './RainingGame';
-=======
-import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
->>>>>>> main
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -54,7 +45,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         Math.PI / 3,
         20,
         new Vector3(10, 2, 9),
-        scene
+        scene,
       );
       scene.activeCamera = camera;
 
@@ -130,7 +121,10 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       ]);
 
       // 1) Création du bouton BabylonJS
-      const rollBtn = Button.CreateImageOnlyButton('rollBtn', '/assets/bouton_dice.png');
+      const rollBtn = Button.CreateImageOnlyButton(
+        'rollBtn',
+        '/assets/bouton_dice.png',
+      );
       rollBtn.width = '80px';
       rollBtn.height = '80px';
       rollBtn.cornerRadius = 15;
@@ -141,7 +135,6 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       rollBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
       rollBtn.left = '-20px';
       rollBtn.top = '-20px';
-
 
       // 4) Ajout du bouton à la GUI
       gui.addControl(rollBtn);
@@ -154,7 +147,6 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         await diceMod.current.hide();
         await boardMod.current.movePlayer(currentPlayer, n);
         currentPlayer = (currentPlayer + 1) % playerCount;
-
       });
     });
 
@@ -172,27 +164,13 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
   useImperativeHandle(ref, () => ({
     async rollAndMove(steps: number) {
-<<<<<<< HEAD
-      // affiche + lance le dé
-=======
-      sceneMgrRef.current?.createScene('mini1', initMiniGame1);
->>>>>>> main
+      sceneMgrRef.current?.createScene('mini1', initRainingGame);
       await diceMod.current.show();
       await diceMod.current.roll(steps);
       await diceMod.current.hide();
       await boardMod.current.movePlayer(currentPlayer, steps);
 
-<<<<<<< HEAD
-      //cache le dé
-      await diceMod.current.hide();
-      sceneMgrRef.current?.createScene('rainingGame', (scene) => {
-        // Provide default values for targetScore and onFinish as needed
-        initRainingGame(scene, 10, () => {});
-      });
-
       sceneMgrRef.current?.switchTo('rainingGame');
-=======
->>>>>>> main
       currentPlayer = (currentPlayer + 1) % playerCount;
     },
   }));
