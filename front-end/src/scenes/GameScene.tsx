@@ -1,13 +1,19 @@
-import {
-  useEffect,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-} from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
-import { ArcRotateCamera, Vector3, HemisphericLight } from '@babylonjs/core';
+import {
+  ArcRotateCamera,
+  Vector3,
+  Scene,
+  HemisphericLight,
+  AppendSceneAsync,
+  TransformNode,
+  Mesh,
+  CubeTexture,
+  PBRMaterial,
+  HDRCubeTexture,
+} from '@babylonjs/core';
 import {
   AdvancedDynamicTexture,
   Button,
@@ -19,6 +25,7 @@ import {
 import { SceneManager } from '../engine/SceneManager';
 import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
+import { Inspector } from '@babylonjs/inspector';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -39,8 +46,12 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     const engine = new BabylonEngine(canvasRef.current);
     const sceneMgr = new SceneManager(engine.getEngine());
     sceneMgrRef.current = sceneMgr;
+    // scène principale
+    sceneMgrRef.current?.createScene('mini1', async (scene) => {
+      initMiniGame1(scene, canvasRef.current!, sceneMgr);
+      importSkyBox(scene);
+    });
 
-    // Scène principale
     sceneMgr.createScene('main', async (scene) => {
       // Caméra
       const camera = new ArcRotateCamera(
@@ -49,7 +60,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         Math.PI / 3,
         20,
         new Vector3(10, 2, 9),
-        scene
+        scene,
       );
       scene.activeCamera = camera;
 
@@ -60,6 +71,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       // Modules Plateau et Dé
       boardMod.current = new BoardModule(scene);
       diceMod.current = new DiceModule(scene, camera);
+      // Inspector.Show(scene, { embedMode: true });
 
       await boardMod.current.init(playerCount, [
         '/assets/character.glb',
@@ -125,7 +137,10 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       ]);
 
       // 1) Création du bouton BabylonJS
-      const rollBtn = Button.CreateImageOnlyButton('rollBtn', '/assets/bouton_dice.png');
+      const rollBtn = Button.CreateImageOnlyButton(
+        'rollBtn',
+        '/assets/bouton_dice.png',
+      );
       rollBtn.width = '80px';
       rollBtn.height = '80px';
       rollBtn.cornerRadius = 15;
@@ -136,7 +151,6 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       rollBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
       rollBtn.left = '-20px';
       rollBtn.top = '-20px';
-
 
       // 4) Ajout du bouton à la GUI
       gui.addControl(rollBtn);
@@ -149,7 +163,6 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
         await diceMod.current.hide();
         await boardMod.current.movePlayer(currentPlayer, n);
         currentPlayer = (currentPlayer + 1) % playerCount;
-
       });
     });
 
@@ -157,6 +170,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     sceneMgr.createScene('CloudGame', (scene) => {
       initCloudGame(scene, sceneMgr);
     });
+    sceneMgrRef.current?.createScene('mini1', initMiniGame1);
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
@@ -167,7 +181,6 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
   useImperativeHandle(ref, () => ({
     async rollAndMove(steps: number) {
-      sceneMgrRef.current?.createScene('mini1', initMiniGame1);
       await diceMod.current.show();
       await diceMod.current.roll(steps);
       await diceMod.current.hide();
@@ -179,5 +192,21 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '99%' }} />;
 });
+
+function importSkyBox(scene: Scene) {
+  const envTexture = CubeTexture.CreateFromPrefilteredData(
+    '/assets/skybox_high_right.env',
+    scene,
+  );
+
+  // 1. Définit la texture comme environnement PBR pour la scène
+  scene.environmentTexture = envTexture;
+
+  // 2. Crée la skybox "automatiquement"
+  // - size = 1000 (à adapter si besoin)
+  // - PBR friendly, reflection & lighting ok
+  // - true = générer le matériau PBR pour la skybox
+  const skybox = scene.createDefaultSkybox(envTexture, true, 100000000, 0);
+}
 
 export default GameScene;
