@@ -138,7 +138,10 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
       //cache le dé
       await diceMod.current.hide();
-      sceneMgrRef.current?.createScene('rainingGame', initRainingGame);
+      sceneMgrRef.current?.createScene('rainingGame', (scene) => {
+        // Provide default values for targetScore and onFinish as needed
+        initRainingGame(scene, 10, () => {});
+      });
 
       sceneMgrRef.current?.switchTo('rainingGame');
       currentPlayer = (currentPlayer + 1) % playerCount;
