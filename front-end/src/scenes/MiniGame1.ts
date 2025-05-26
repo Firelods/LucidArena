@@ -6,14 +6,11 @@ import {
   Mesh,
   Scene,
   ArcRotateCamera,
-  SceneLoader,
   AbstractMesh,
-  AnimationGroup,
   AppendSceneAsync,
   HemisphericLight,
   PBRMaterial,
 } from '@babylonjs/core';
-import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
 
 type PlayerState = {
@@ -40,7 +37,7 @@ export async function initMiniGame1(
   // Inspector.Show(scene, { embedMode: true });
   // camera.lowerRadiusLimit = 15;
   // camera.upperRadiusLimit = 18;
-  // // camera.wheelPrecision = 2000; // Pour éviter le zoom
+  // camera.wheelPrecision = 2000;
   // camera.panningSensibility = 0;
 
   // Lumière
@@ -83,7 +80,6 @@ export async function initMiniGame1(
     {
       mesh: avatar as Mesh,
       lane: 0,
-      targetX: 0,
       alive: true,
       score: 0,
     },
@@ -134,7 +130,6 @@ export async function initMiniGame1(
   window.onkeydown = (e) => {
     if (!players[0].alive || isMoving) return;
     if (e.key === 'ArrowLeft' && players[0].lane > -1) {
-      sceneMgr.switchTo('main');
       players[0].lane--;
       isMoving = true;
       moveStartTime = performance.now();
@@ -151,7 +146,7 @@ export async function initMiniGame1(
   };
 
   // Boucle principale
-  let zSpeed = 0; // Un peu plus rapide
+  let zSpeed = 0.1;
   let score = 0;
   let gameOver = false;
 
