@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import Dice from './components/Dice';
 import GameScene from './scenes/GameScene';
 import { SceneManager } from './engine/SceneManager';
 import { useState, useEffect } from 'react';
@@ -20,8 +19,6 @@ export default function Game() {
   return (
     <div className="w-screen h-screen relative">
       <GameScene ref={gameRef} />
-
-      <Dice onRoll={(n) => gameRef.current?.rollAndMove(n)} />
     </div>
   );
 }
