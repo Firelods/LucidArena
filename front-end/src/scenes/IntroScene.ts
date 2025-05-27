@@ -26,8 +26,8 @@ export async function initIntroScene(
     scene,
   );
   scene.activeCamera = camera;
-  camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
-  camera.detachControl();
+  // camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
+  // camera.detachControl();
 
   // 2) Lumière
   new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
@@ -50,7 +50,7 @@ export async function initIntroScene(
   ui.addControl(cloud);
 
   // 5) Pause
-  await new Promise((res) => setTimeout(res, 4000));
+  await new Promise((res) => setTimeout(res, 2000));
 
   // 6) Easing
   const easing = new QuadraticEase();
@@ -75,7 +75,6 @@ export async function initIntroScene(
   const anim = scene.beginAnimation(cloud, 0, 60, false, 1);
   anim.onAnimationEndObservable.addOnce(() => {
     // 1) on passe à la scène "main" immédiatement
-    sceneMgr.switchTo('main');
     // 2) on attend le prochain cycle de rendu avant de retirer l’UI
     setTimeout(() => ui.dispose(), 0);
   });

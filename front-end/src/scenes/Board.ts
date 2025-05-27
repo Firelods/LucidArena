@@ -88,9 +88,6 @@ export async function initBoard(
   cloud.left = -cloudWidth;
   slideUI.addControl(cloud);
 
-  // Pause éventuelle pour synchroniser (facultatif)
-  await new Promise((res) => setTimeout(res, 500)); // petit délai si besoin
-
   // Préparation de l’easing
   const easing = new QuadraticEase();
   easing.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
@@ -248,16 +245,28 @@ export async function initBoard(
     // --- 3. Montre/cache le bouton dé ---
     rollBtn.isVisible = isMyTurn;
 
-    // --- 4. Synchro positions des pions (anim ou pas) ---
-    if (
-      !lastPositions.length ||
-      lastPositions.some((v, i) => state.positions[i] !== v)
-    ) {
-      await boardMod.current.setPositions(state.positions); // ajoute setPositions dans ton BoardModule si pas fait
+    // --- 4. Animations de déplacement pas à pas ---
+    if (!lastPositions.length) {
+      // initialisation de lastPositions la première fois
+      lastPositions = [...state.positions];
+      console.log(`Positions initiales: ${lastPositions}`);
+      await boardMod.current.setPositions(state.positions);
+    } else {
+      for (let i = 0; i < state.positions.length; i++) {
+        const oldIdx = lastPositions[i];
+        const newIdx = state.positions[i];
+        const steps = newIdx - oldIdx;
+        if (steps > 0) {
+          // fait sauter le pion 'steps' fois
+          console.log(
+            `Déplacement joueur ${i} de ${oldIdx} à ${newIdx} (${steps} pas)`,
+          );
+          lastPositions[i] = newIdx;
+          await boardMod.current.movePlayer(i, steps);
+        }
+      }
       lastPositions = [...state.positions];
     }
-    // console.log(lastDice, state.lastDice);
-
     // --- 5. Animation du dé si valeur a changé ---
     if (state.lastDiceRoll && state.lastDiceRoll !== lastDice) {
       console.log(`Lancer de dé: ${state.lastDiceRoll}`);
