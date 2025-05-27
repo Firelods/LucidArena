@@ -2,47 +2,57 @@ import { useEffect, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 
 export function useLobbySocket(roomId: string, user: string) {
-    const [players, setPlayers] = useState<string[]>([]);
-    const [client, setClient] = useState<Client | null>(null);
+  const [players, setPlayers] = useState<string[]>([]);
+  const [started, setStarted] = useState<boolean>(false);
 
-    useEffect(() => {
-        const token = localStorage.getItem('jwt');
+  const [client, setClient] = useState<Client | null>(null);
 
-        if (!token) {
-            console.error('No JWT token found in localStorage.');
-            return;
-        }
+  useEffect(() => {
+    const token = localStorage.getItem('jwt');
 
-        const stomp = new Client({
-            brokerURL: `ws://localhost:8080/ws?access_token=${token}`,
-            reconnectDelay: 5000,
-            debug: () => {},
-            onConnect: () => {
-                stomp.subscribe(`/topic/lobby/${roomId}`, (message) => {
-                    const body = JSON.parse(message.body);
-                    setPlayers(body.usernames);
-                });
+    if (!token) {
+      console.error('No JWT token found in localStorage.');
+      return;
+    }
 
-                stomp.publish({
-                    destination: `/app/lobby/join/${roomId}`,
-                    body: JSON.stringify({ username: user }),
-                });
-            },
-            onStompError: (frame) => {
-                console.error(
-                    'Broker reported error: ' + frame.headers['message'],
-                );
-                console.error('Additional details: ' + frame.body);
-            },
+    const stomp = new Client({
+      brokerURL: `ws://localhost:8080/ws?access_token=${token}`,
+      reconnectDelay: 5000,
+      debug: () => {},
+      onConnect: () => {
+        stomp.subscribe(`/topic/lobby/${roomId}`, (message) => {
+          const body = JSON.parse(message.body);
+          setPlayers(body.usernames);
         });
+        stomp.subscribe(`/topic/lobby/${roomId}/start`, () => {
+          setStarted(true);
+        });
+        stomp.publish({
+          destination: `/app/lobby/join/${roomId}`,
+          body: JSON.stringify({ username: user }),
+        });
+      },
+      onStompError: (frame) => {
+        console.error('Broker reported error: ' + frame.headers['message']);
+        console.error('Additional details: ' + frame.body);
+      },
+    });
 
-        stomp.activate();
-        setClient(stomp);
+    stomp.activate();
+    setClient(stomp);
 
-        return () => {
-            stomp.deactivate();
-        };
-    }, [roomId, user]);
+    return () => {
+      stomp.deactivate();
+    };
+  }, [roomId, user]);
 
-    return { players };
+  function startGame() {
+    if (client && client.connected) {
+      client.publish({
+        destination: `/app/lobby/start/${roomId}`,
+        body: '{}',
+      });
+    }
+  }
+  return { players, startGame, started };
 }

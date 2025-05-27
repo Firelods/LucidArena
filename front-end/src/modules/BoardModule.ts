@@ -154,4 +154,20 @@ export class BoardModule {
         .add(new Vector3(0, this.initialHeight, 0));
     });
   }
+
+  public setPositions(positions: number[]) {
+    if (positions.length !== this.players.length) {
+      throw new Error(
+        `Nombre de positions (${positions.length}) ne correspond pas au nombre de joueurs (${this.players.length})`,
+      );
+    }
+    this.currentIndices = [...positions];
+    this.players.forEach((player, i) => {
+      const tileIdx = positions[i];
+      player.position = boardTiles[tileIdx]
+        .clone()
+        .add(new Vector3(0, this.initialHeight, 0));
+      this.updateTileGroup(tileIdx);
+    });
+  }
 }
