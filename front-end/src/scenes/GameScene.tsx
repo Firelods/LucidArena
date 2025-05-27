@@ -9,6 +9,7 @@ import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
 import { initIntroScene } from './IntroScene';
+import { Inspector } from '@babylonjs/inspector';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -55,7 +56,8 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('introScene');
+    sceneMgr.switchTo('main');
+
 
     return () => engine.getEngine().dispose();
   }, []);

@@ -18,6 +18,7 @@ import {
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
 import { SceneManager } from '../engine/SceneManager';
+import { Inspector } from '@babylonjs/inspector';
 
 export async function initBoard(
   scene: Scene,
