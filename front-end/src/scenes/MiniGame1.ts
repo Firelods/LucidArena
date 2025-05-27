@@ -12,6 +12,7 @@ import {
   PBRMaterial,
 } from '@babylonjs/core';
 import { SceneManager } from '../engine/SceneManager';
+import { playerFiles } from '../utils/utils';
 
 type PlayerState = {
   mesh: Mesh;
@@ -24,6 +25,7 @@ export async function initMiniGame1(
   scene: Scene,
   canvas: HTMLCanvasElement,
   sceneMgr: SceneManager,
+  playerIndex: number,
 ) {
   // Caméra dynamique
   const camera = new ArcRotateCamera(
@@ -65,8 +67,11 @@ export async function initMiniGame1(
   let avatar: AbstractMesh | null = null;
   let currentLane: number = 0;
   let zPosition = 2;
+  console.log(
+    `Loading player ${playerIndex} avatar from /assets/${playerFiles[playerIndex]}`,
+  );
 
-  await AppendSceneAsync('/assets/character_pink.glb', scene);
+  await AppendSceneAsync(`/assets/${playerFiles[playerIndex]}`, scene);
   let result = scene.getMeshByName('__root__') as Mesh;
   result.name = 'avatar';
 
@@ -146,7 +151,7 @@ export async function initMiniGame1(
   };
 
   // Boucle principale
-  let zSpeed = 0.1;
+  let zSpeed = 0.15;
   let score = 0;
   let gameOver = false;
 

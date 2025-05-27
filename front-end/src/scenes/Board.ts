@@ -17,12 +17,19 @@ import {
 } from '@babylonjs/gui';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
+import { RefObject } from 'react';
+import { GameStateDTO } from '../dto/GameStateDTO';
+import { isItMyTurn } from '../hooks/useGameSocket';
+import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
 
 export async function initBoard(
   scene: Scene,
   boardMod: React.RefObject<BoardModule>,
   diceMod: React.RefObject<DiceModule>,
+  getGameState: () => GameStateDTO | null,
+  rollDice: () => void,
+  nickname: string,
   playerCount: number,
   currentPlayer: number,
   sceneMgr: SceneManager,
@@ -153,17 +160,31 @@ export async function initBoard(
     });
   }
 
-  // 5) Affichage des popups d’accueil
-  await showPopups([
-    'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
-    'À tour de rôle, affrontez-vous sur le plateau.',
-    'Sur chaque case, découvrez :',
-    '• Un bonus d’étoiles \n• Un mini-jeu pour en gagner davantage \n• Une chance de rejouer',
-    'Le premier à 10 étoiles remporte la partie !',
-    'Bonne chance et amusez-vous bien !',
-  ]);
+  // --- UI SCORE ---
+  const scorePanel = new Rectangle('scorePanel');
+  scorePanel.width = '80%';
+  scorePanel.height = '60px';
+  scorePanel.cornerRadius = 10;
+  scorePanel.thickness = 0;
+  scorePanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  scorePanel.top = '10px';
+  gui.addControl(scorePanel);
 
-  // 6) Bouton lancer de dé
+  // Placeholders dynamiques
+  const scoreBlocks: TextBlock[] = [];
+  for (let i = 0; i < 4; i++) {
+    const tb = new TextBlock(`score${i}`, '');
+    tb.color = ['#ff9500', '#e91e63', '#2196f3', '#4caf50'][i];
+    tb.fontSize = 24;
+    tb.fontFamily = 'Arial Black';
+    tb.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    tb.width = '25%';
+    tb.left = `${i * 25}%`;
+    scorePanel.addControl(tb);
+    scoreBlocks.push(tb);
+  }
+
+  // --- Bouton Lancer le Dé ---
   const rollBtn = Button.CreateImageOnlyButton(
     'rollBtn',
     '/assets/bouton_dice.png',
@@ -178,16 +199,82 @@ export async function initBoard(
   rollBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
   rollBtn.left = '-20px';
   rollBtn.top = '-20px';
+  rollBtn.isVisible = false; // affiché seulement à ton tour
   gui.addControl(rollBtn);
 
-  // 7) Gestion du clic
-  rollBtn.onPointerUpObservable.add(async () => {
-    const n = Math.floor(Math.random() * 6) + 1;
-    await diceMod.current.show();
-    await diceMod.current.roll(n);
-    await diceMod.current.hide();
-    await boardMod.current.movePlayer(currentPlayer, n);
-    currentPlayer = (currentPlayer + 1) % playerCount;
-    sceneMgr.switchTo('mini1');
+  rollBtn.onPointerUpObservable.add(() => {
+    rollDice();
   });
+
+  // --- Affichage du joueur courant ---
+  const playerTurnText = new TextBlock('turn', '');
+  playerTurnText.color = '#333b40';
+  playerTurnText.fontSize = 20;
+  playerTurnText.fontWeight = 'bold';
+  playerTurnText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  playerTurnText.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+  playerTurnText.top = '-110px';
+  gui.addControl(playerTurnText);
+
+  // --- Synchro boucle: adapte la scène à l’état serveur ---
+  let lastPositions: number[] = [];
+  let lastDice: number | null = null;
+  let currentPlayerIndex = -1;
+  let isMyTurn = false;
+  scene.onBeforeRenderObservable.add(async () => {
+    // console.log('--- Synchronisation de la scène ---');
+    const state = getGameState();
+    // console.log('Game state:', state);
+    if (!state) return;
+    if (state.currentPlayer !== currentPlayerIndex) {
+      currentPlayerIndex = state.currentPlayer;
+      console.log(
+        `Changement de joueur: ${state.players[currentPlayerIndex].nickname}`,
+      );
+      isMyTurn = isItMyTurn(state, nickname);
+    }
+    // --- 1. Met à jour les scores UI ---
+    state.scores.forEach((s, i) => {
+      if (!state.players[i]) return; // sécurité si moins de 4 joueurs
+      scoreBlocks[i].text = `${state.players[i].nickname}: ${s}`;
+    });
+
+    // --- 2. Affiche joueur courant ---
+    playerTurnText.text =
+      'Tour de ' +
+      (state.players[state.currentPlayer].nickname ?? '-') +
+      (isMyTurn ? ' (à vous de jouer !)' : '');
+
+    // --- 3. Montre/cache le bouton dé ---
+    rollBtn.isVisible = isMyTurn;
+
+    // --- 4. Synchro positions des pions (anim ou pas) ---
+    if (
+      !lastPositions.length ||
+      lastPositions.some((v, i) => state.positions[i] !== v)
+    ) {
+      await boardMod.current.setPositions(state.positions); // ajoute setPositions dans ton BoardModule si pas fait
+      lastPositions = [...state.positions];
+    }
+    // console.log(lastDice, state.lastDice);
+
+    // --- 5. Animation du dé si valeur a changé ---
+    if (state.lastDiceRoll && state.lastDiceRoll !== lastDice) {
+      console.log(`Lancer de dé: ${state.lastDiceRoll}`);
+
+      lastDice = state.lastDiceRoll;
+      await diceMod.current.show();
+      await diceMod.current.roll(state.lastDiceRoll);
+      await diceMod.current.hide();
+    }
+  });
+
+  await showPopups([
+    'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
+    'À tour de rôle, affrontez-vous sur le plateau.',
+    'Sur chaque case, découvrez :',
+    '• Un bonus d’étoiles \n• Un mini-jeu pour en gagner davantage \n• Une chance de rejouer',
+    'Le premier à 10 étoiles remporte la partie !',
+    'Bonne chance et amusez-vous bien !',
+  ]);
 }
