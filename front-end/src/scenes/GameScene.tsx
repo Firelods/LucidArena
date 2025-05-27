@@ -1,4 +1,10 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import {
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
@@ -9,72 +15,100 @@ import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
 import { initIntroScene } from './IntroScene';
+import { useGameSocket } from '../hooks/useGameSocket';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { GameStateDTO } from '../dto/GameStateDTO';
 
-export type GameSceneHandle = {
-  /** Lance le dé et déplace le joueur courant */
-  rollAndMove: (steps: number) => Promise<void>;
-};
-
-const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
+const GameScene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boardMod = useRef<BoardModule>(null!);
   const diceMod = useRef<DiceModule>(null!);
   const sceneMgrRef = useRef<SceneManager>(null);
+  const gameStateRef = useRef<GameStateDTO | null>(null);
 
-  const playerCount = 4;
-  let currentPlayer = 0;
+  // Récupère contexte jeu (state synchrone)
+  const { roomId } = useParams();
+  const auth = useAuth();
+  const user = auth?.user;
+  const nickname = user?.nickname || '';
+  // On récupère l'état du jeu (gameState), l'action pour lancer le dé et si c'est à mon tour
+  const { gameState, rollDice } = useGameSocket(roomId!);
+  const createdScenesRef = useRef(false);
+  const [introDone, setIntroDone] = useState(false);
 
+  // 1) Initialisation du moteur Babylon + scène d'intro
   useEffect(() => {
     if (!canvasRef.current) return;
     const engine = new BabylonEngine(canvasRef.current);
     const sceneMgr = new SceneManager(engine.getEngine());
     sceneMgrRef.current = sceneMgr;
 
-    // scène principale
-    sceneMgr.createScene('main', async (scene) => {
-      importSkyBox(scene);
-      initBoard(scene, boardMod, diceMod, playerCount, currentPlayer, sceneMgr);
-    });
-
     // Scène d'introduction
-    sceneMgr.createScene('introScene', (scene) => {
+    sceneMgr.createScene('intro', (scene) => {
       importSkyBox(scene);
-      initIntroScene(scene, sceneMgr);
+      initIntroScene(scene, sceneMgr).then(() => setIntroDone(true));
     });
 
-    // Scène CloudGame
-    sceneMgr.createScene('CloudGame', (scene) => {
-      importSkyBox(scene);
-      initCloudGame(scene, sceneMgr,2);
-    });
-    // Scene MiniGame1 (subway surfer)
-    sceneMgr.createScene('mini1', (scene) => {
-      importSkyBox(scene);
-      initMiniGame1(scene, canvasRef.current!, sceneMgr,2);
-    });
-
-    // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('introScene');
+    sceneMgr.switchTo('intro');
 
     return () => engine.getEngine().dispose();
   }, []);
 
-  useImperativeHandle(ref, () => ({
-    async rollAndMove(steps: number) {
-      await diceMod.current.show();
-      await diceMod.current.roll(steps);
-      await diceMod.current.hide();
-      await boardMod.current.movePlayer(currentPlayer, steps);
-      
-      currentPlayer = (currentPlayer + 1) % playerCount;
-      sceneMgrRef.current?.switchTo('CloudGame');
+  // 2) Dès que gameState est non-null, on crée MAIN + mini-jeux & on bascule sur MAIN
+  useEffect(() => {
+    const sceneMgr = sceneMgrRef.current;
+    console.log(`GameState: ${gameState}`);
+    console.log(`sceneMgr: ${sceneMgr}`);
+    console.log(`createdScenesRef: ${createdScenesRef.current}`);
+    if (!sceneMgr || !gameState || (createdScenesRef.current && introDone))
+      return;
+    createdScenesRef.current = true;
+    const playerIdx = gameState.players.findIndex(
+      (p) => p.nickname === nickname,
+    );
 
-    },
-  }));
+    // 2.a) Scène principale "main"
+    sceneMgr.createScene('main', async (scene: Scene) => {
+      importSkyBox(scene);
+      await initBoard(
+        scene,
+        boardMod,
+        diceMod,
+        () => gameStateRef.current,
+        rollDice,
+        nickname,
+        gameState.players.length,
+        playerIdx,
+        sceneMgr,
+      );
+    });
+
+    // 2.b) Mini-jeu CloudGame
+    sceneMgr.createScene('CloudGame', (scene: Scene) => {
+      importSkyBox(scene);
+      initCloudGame(scene, sceneMgr, playerIdx);
+    });
+
+    // 2.c) Mini-jeu MiniGame1
+    sceneMgr.createScene('mini1', (scene: Scene) => {
+      importSkyBox(scene);
+      initMiniGame1(scene, canvasRef.current!, sceneMgr, playerIdx);
+    });
+
+    // Bascule vers la scène principale
+    sceneMgr.switchTo('main');
+  }, [gameState]);
+
+  useEffect(() => {
+    if (gameState) {
+      gameStateRef.current = gameState;
+    }
+  }, [gameState, introDone]);
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '99%' }} />;
-});
+};
 
 function importSkyBox(scene: Scene) {
   const envTexture = CubeTexture.CreateFromPrefilteredData(
