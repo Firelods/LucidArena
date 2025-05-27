@@ -50,12 +50,12 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     // Scene MiniGame1 (subway surfer)
     sceneMgr.createScene('mini1', (scene) => {
       importSkyBox(scene);
-      initMiniGame1(scene, canvasRef.current!, sceneMgr);
+      initMiniGame1(scene, canvasRef.current!, sceneMgr,2);
     });
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('introScene');
+    sceneMgr.switchTo('mini1');
 
     return () => engine.getEngine().dispose();
   }, []);
