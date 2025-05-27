@@ -25,15 +25,14 @@ import {
   TextBlock,
   Image as GUIImage,
 } from '@babylonjs/gui';
-import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
 
 export async function initCloudGame(
   scene: Scene,
   sceneMgr: SceneManager,
+  activePlayer: number,
 ): Promise<void> {
-  // 0) Récupération de la scène
-  // 1) Caméra fixe
+  // 0) Caméra fixe
   const camera = new ArcRotateCamera(
     'camCloudGame',
     0,
@@ -43,28 +42,26 @@ export async function initCloudGame(
     scene,
   );
   camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
-  camera.detachControl();
 
-  // Prépare le canvas pour recevoir le focus clavier
+  // Focus clavier
   const canvas = scene.getEngine().getRenderingCanvas() as HTMLCanvasElement;
   canvas.tabIndex = 0;
   canvas.style.outline = 'none';
   canvas.focus();
 
-  // 2) Lumière principale
+  // 1) Lumière
   new HemisphericLight(
     'lightCloudGame',
     new Vector3(0, 1, 0),
     scene,
   ).intensity = 0.6;
 
-  // 3) Plateforme
+  // 2) Plateforme
   const trackWidth = 10;
   const trackLength = 50;
   const paddingX = 1;
   const paddingZ = 1;
   const thickness = 0.5;
-
   const platform = MeshBuilder.CreateBox(
     'platformBox',
     { width: trackWidth, height: thickness, depth: trackLength },
@@ -75,7 +72,7 @@ export async function initCloudGame(
   groundMat.diffuseColor = new Color3(0.8, 0.8, 0.8);
   platform.material = groundMat;
 
-  // 4) Chargement des personnages et des étoiles
+  // 3) Chargement des persos + étoiles
   const playerFiles = [
     'character.glb',
     'character_pink.glb',
@@ -89,40 +86,30 @@ export async function initCloudGame(
     'etoile_green.glb',
   ];
   const effectiveWidth = trackWidth - 2 * paddingX;
-  const spanX = effectiveWidth / (playerFiles.length - 1);
   const startZ = -trackLength / 2 + paddingZ;
   const starHeightY = 1.5;
-
   const stars: Mesh[] = [];
-  for (let i = 0; i < playerFiles.length; i++) {
-    // personnage
-    await AppendSceneAsync(`/assets/${playerFiles[i]}`, scene);
-    const root = scene.getMeshByName('__root__')!;
-    root.name = `player${i}`;
-    root.rotationQuaternion = null;
-    root.rotation.y = 0;
-    root.scaling.setAll(0.5);
-    root.position.set(-trackWidth / 2 + paddingX + spanX * i, 0, startZ);
 
-    // étoile
-    const before = scene.meshes.length;
-    await AppendSceneAsync(`/assets/${starFiles[i]}`, scene);
-    const newMeshes = scene.meshes.slice(before);
-    const star = newMeshes[0] as Mesh;
-    star.name = `star${i}`;
-    star.scaling.setAll(0.5);
-    star.position.set(
-      -trackWidth / 2 + paddingX + spanX * i,
-      starHeightY,
-      startZ,
-    );
-    stars.push(star);
-  }
+  await AppendSceneAsync(`/assets/${playerFiles[activePlayer]}`, scene);
+  const root = scene.getMeshByName('__root__')!;
+  root.name = `player${activePlayer}`;
+  root.rotationQuaternion = null;
+  root.rotation.y = 0;
+  root.position.set(0, 0, startZ);
+  root.scaling.setAll(0.7);
 
-  // Sauvegarde des positions initiales des étoiles
+  const before = scene.meshes.length;
+  await AppendSceneAsync(`/assets/${starFiles[activePlayer]}`, scene);
+  const newMeshes = scene.meshes.slice(before);
+  const star = newMeshes[0] as Mesh;
+  star.name = `star${activePlayer}`;
+  star.scaling.setAll(0.7);
+  star.position.set(0, starHeightY, startZ);
+  stars.push(star);
+
   const initialStarPositions = stars.map((s) => s.position.clone());
 
-  // 5) Bande de départ quadrillée + image de sol
+  // 4) Grille de départ + image de sol
   {
     const gridLength = 2;
     const gridWidth = effectiveWidth + 2 * paddingX;
@@ -158,7 +145,7 @@ export async function initCloudGame(
     platform.material = groundImgMat;
   }
 
-  // 6) Zones de scoring (avec randomisation)
+  // 5) Zones de scoring
   let zoneCenterZ = 0;
   const bands: Mesh[] = [];
   const zoneLength = trackLength * 0.2;
@@ -174,7 +161,6 @@ export async function initCloudGame(
   ];
   const mid = Math.floor(count / 2);
 
-  // Création des bandes
   for (let i = 0; i < count; i++) {
     const b = MeshBuilder.CreateBox(
       `band${i}`,
@@ -188,29 +174,43 @@ export async function initCloudGame(
     b.material = m;
     bands.push(b);
   }
+  type Segment = { start: number; end: number; points: number };
+  let segments: Segment[] = [];
 
-  // Fonction de randomisation de la zone
+  // 6) Scoring et manches
+  const totalRounds = 3;
+  let currentRound = 0;
+  const scores = new Array(stars.length).fill(0);
+  const bandPoints = (bandIndex: number): number =>
+    bandIndex === mid ? 5 : Math.abs(bandIndex - mid) === 1 ? 3 : 1;
+
   function randomizeZone() {
     zoneCenterZ = (Math.random() * 2 - 1) * maxOffset;
     bands.forEach((b, i) => {
       b.position.z = zoneCenterZ + (i - mid) * depth;
     });
+
+    // calcul des intervalles pour chaque bande
+    segments = bands.map((_, i) => {
+      // centre de la bande i
+      const centre = zoneCenterZ + (i - mid) * depth;
+      // début / fin = centre ± depth/2
+      return {
+        start: centre - depth / 2,
+        end: centre + depth / 2,
+        points: bandPoints(i),
+      };
+    });
   }
+
   randomizeZone();
 
   // 7) GUI Popups et Scoreboard
-  const popupGUI = AdvancedDynamicTexture.CreateFullscreenUI(
-    'popupUI',
-    true,
-    scene,
-  );
   const scoreGUI = AdvancedDynamicTexture.CreateFullscreenUI(
     'scoreUI',
     true,
     scene,
   );
-
-  // 1) Créez un panel global semi-transparent
   const scorePanel = new Rectangle('scorePanel');
   scorePanel.width = '90%';
   scorePanel.height = '60px';
@@ -220,7 +220,6 @@ export async function initCloudGame(
   scorePanel.top = '10px';
   scoreGUI.addControl(scorePanel);
 
-  // 2) Configurez la grid à l’intérieur du panel
   const gridUI = new Grid();
   stars.forEach(() => gridUI.addColumnDefinition(1));
   gridUI.width = '100%';
@@ -234,11 +233,9 @@ export async function initCloudGame(
     true,
     scene,
   );
-
   const spaceIcon = new GUIImage('spaceIcon', '/assets/space-icon.png');
   spaceIcon.width = '150px';
   spaceIcon.height = '150px';
-
   spaceIcon.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
   spaceIcon.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
   spaceIcon.left = '20px';
@@ -246,7 +243,6 @@ export async function initCloudGame(
   spaceIcon.alpha = 0.3;
   inputGUI.addControl(spaceIcon);
 
-  // 3) Pour chaque colonne, on crée une cellule colorée
   const playerNames = [
     'Orange Player',
     'Pink Player',
@@ -254,44 +250,37 @@ export async function initCloudGame(
     'Green Player',
   ];
   const playerColors = ['#f39c12', '#e91e63', '#3498db', '#2ecc71'];
-
-  const scores = new Array(stars.length).fill(0);
-
-  // 2) Pour chaque colonne, créez la cellule ET le TextBlock avec le nom/color dès le début
   const textBlocks: TextBlock[] = [];
-  stars.forEach((_, i) => {
-    // cellule arrondie colorée
-    const cell = new Rectangle(`cell${i}`);
-    cell.width = 1;
-    cell.height = '100%';
-    cell.cornerRadius = 8;
-    cell.thickness = 2;
-    cell.color = '#fff'; // bordure blanche
-    cell.background = playerColors[i]; // couleur de fond par joueur
-    cell.paddingLeft = '8px';
-    cell.paddingRight = '8px';
-    cell.paddingTop = '5px';
-    cell.paddingBottom = '5px';
-    gridUI.addControl(cell, 0, i);
 
-    // TextBlock avec nom + score initial
-    const tb = new TextBlock(`scoreText${i}`, `${playerNames[i]} : 0/3`);
-    tb.color = 'white';
-    tb.fontSize = 22;
-    tb.fontFamily = 'Arial Black';
-    tb.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    tb.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    cell.addControl(tb);
+  const cell = new Rectangle(`cell${activePlayer}`);
+  cell.width = 0.4;
+  cell.height = '100%';
+  cell.cornerRadius = 8;
+  cell.thickness = 2;
+  cell.color = '#fff';
+  cell.background = playerColors[activePlayer];
+  cell.paddingLeft = '8px';
+  cell.paddingRight = '8px';
+  cell.paddingTop = '5px';
+  cell.paddingBottom = '5px';
+  gridUI.addControl(cell, 0, activePlayer);
 
-    textBlocks.push(tb);
-  });
+  const tb = new TextBlock(
+    `scoreText${activePlayer}`,
+    `${playerNames[activePlayer]} : 0 pts`,
+  );
+  tb.color = 'white';
+  tb.fontSize = 22;
+  tb.fontFamily = 'Arial Black';
+  tb.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  tb.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+  cell.addControl(tb);
+  textBlocks.push(tb);
 
-  // 3) Simplifiez la mise à jour
   function updateScoreboard() {
-    scores.forEach((v, i) => {
-      textBlocks[i].text = `${playerNames[i]} : ${v}/3`;
-    });
+    textBlocks[0].text = `${playerNames[activePlayer]} : ${scores[0]} pts`;
   }
+
   const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
 
   async function showPopups(messages: string[]): Promise<void> {
@@ -335,13 +324,24 @@ export async function initCloudGame(
     });
   }
 
-  // 8) Reset entre manches
+  // Popups d'intro
+  await showPopups([
+    'Bienvenue dans Cloud Game !',
+    'Maintenez la touche Espace pour doser la puissance de votre lancer.',
+    'Relâchez Espace quand vous pensez que votre étoile atteindra la bande centrale.',
+    'Plus vous serez proche du centre, plus vous gagnerez de points !',
+    'Bleu foncé : 5 points, Bleu : 3 points, Bleu clair : 1 point',
+    'Vous avez 3 manches pour faire le meilleur score.',
+  ]);
+
+  canvas.focus();
+
+  // 8) Reset initial
   let pressStart = 0;
   const maxPress = 4;
   const maxDist = 50;
   let current = 0;
   let thrown = false;
-
   function resetRound() {
     // 1) Remise en place des étoiles
     stars.forEach((s, i) => {
@@ -355,30 +355,17 @@ export async function initCloudGame(
     pressStart = 0;
   }
 
-  // 8 bis) Reset de la partie (lot de 3 manches)
   function resetMatch() {
-    // 1) Réinitialise tous les scores à 0
     scores.fill(0);
-
-    // 2) Met à jour l'affichage du scoreboard
+    currentRound = 0;
     updateScoreboard();
-
-    // 3) Réinitialise la première manche
     resetRound();
   }
-
-  // Popups d'intro
-  await showPopups([
-    'Bienvenue dans Cloud Game !',
-    'Maintenez la touche Espace pour doser la puissance de votre lancer.',
-    'Relâchez Espace quand vous pensez que votre étoile atteindra la bande centrale.',
-    'Le joueur le plus proche du centre gagne la manche !',
-    'Le premier à 3 points gagne la partie !',
-  ]);
 
   resetRound();
 
   // 9) Gestion du lancer
+
   scene.onKeyboardObservable.add((info) => {
     if (info.event.code === 'Space') {
       spaceIcon.alpha = info.type === KeyboardEventTypes.KEYDOWN ? 1.0 : 0.3;
@@ -390,20 +377,14 @@ export async function initCloudGame(
       spaceIcon.alpha = info.type === KeyboardEventTypes.KEYDOWN ? 1.0 : 0.3;
     } else if (info.type === KeyboardEventTypes.KEYUP) {
       const dur = (performance.now() - pressStart) / 1000;
-      const clamped = Math.min(dur, maxPress);
-      const star = stars[current];
-
+      const clamped = Math.min(dur, 4);
+      const dist = (clamped / 4) * 50;
       pressStart = 0;
       thrown = true;
 
-      // 1) Paramètres
-      const frameRate = 60; // 60 fps
-      const totalFrame = 120; // 120 images → 2 s
-      const dist = (clamped / maxPress) * maxDist;
-      const jumpHeight = 2; // hauteur du saut
-      const startY = star.position.y;
-
-      // 1) Animation translation Z “lancer”
+      // Création des animations
+      const frameRate = 60;
+      const totalFrame = 120;
       const throwAnim = new Animation(
         'throw',
         'position.z',
@@ -419,7 +400,6 @@ export async function initCloudGame(
       sineEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
       throwAnim.setEasingFunction(sineEase);
 
-      // 2) Animation saut Y
       const jumpAnim = new Animation(
         'jump',
         'position.y',
@@ -428,45 +408,43 @@ export async function initCloudGame(
         Animation.ANIMATIONLOOPMODE_CONSTANT,
       );
       jumpAnim.setKeys([
-        { frame: 0, value: startY },
-        { frame: totalFrame / 2, value: startY + jumpHeight },
-        { frame: totalFrame, value: startY },
+        { frame: 0, value: star.position.y },
+        { frame: totalFrame / 2, value: star.position.y + 2 },
+        { frame: totalFrame, value: star.position.y },
       ]);
       const quadEase = new QuadraticEase();
       quadEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
       jumpAnim.setEasingFunction(quadEase);
 
-      // 4) On combine toutes les animations
       star.animations = [throwAnim, jumpAnim];
       const animatable = scene.beginAnimation(star, 0, totalFrame, false);
 
       animatable.onAnimationEnd = () => {
-        setTimeout(() => {
-          // calcul du gagnant de la manche
-          const dists = stars.map((s) => Math.abs(s.position.z - zoneCenterZ));
-          const minD = Math.min(...dists);
-          const winner = dists.findIndex((d) => d === minD);
+        setTimeout(async () => {
+          const z = star.position.z;
 
-          scores[winner]++;
+          // recherche du segment contenant z
+          const seg = segments.find((s) => z >= s.start && z < s.end);
+          const points = seg ? seg.points : 0;
+
+          scores[0] += points;
           updateScoreboard();
+          await showPopups([
+            `🎯 Vous gagnez ${points} point${points > 1 ? 's' : ''} !`,
+          ]);
 
-          if (scores[winner] >= 3) {
-            // fin de partie : on affiche d'abord la victoire...
-            showPopups([`🎉 Joueur ${winner + 1} remporte la partie !`])
-              // ...puis le gain d'une étoile...
-              .then(() => showPopups(['⭐️ Il remporte alors une étoile !']))
-              // ...puis on retourne à la scène principale
-              .then(() => {
-                resetMatch();
-              })
-              .then(() => {
-                sceneMgr.switchTo('main');
-              });
+          currentRound++;
+          if (currentRound >= totalRounds) {
+            await showPopups([
+              `🏁 Partie terminée : ${scores[0]} pts sur ${totalRounds} manches !`,
+            ]);
+            resetMatch();
+            sceneMgr.switchTo('main');
           } else {
-            // manche suivante
-            showPopups([`Manche gagnée par le joueur ${winner + 1}`])
-              .then(() => showPopups([`🔄 Manche suivante !`]))
-              .then(resetRound);
+            await showPopups([
+              `🔄 Manche ${currentRound + 1} sur ${totalRounds}`,
+            ]);
+            resetRound();
           }
         }, 1500);
       };

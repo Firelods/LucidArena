@@ -37,7 +37,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     // Scène CloudGame
     sceneMgr.createScene('CloudGame', (scene) => {
       importSkyBox(scene);
-      initCloudGame(scene, sceneMgr);
+      initCloudGame(scene, sceneMgr,2);
     });
     // Scene MiniGame1 (subway surfer)
     sceneMgr.createScene('mini1', (scene) => {
@@ -47,7 +47,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('main');
+    sceneMgr.switchTo('CloudGame');
 
     return () => engine.getEngine().dispose();
   }, []);
