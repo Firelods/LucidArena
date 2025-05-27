@@ -1,4 +1,10 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import {
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+} from 'react';
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
@@ -14,11 +20,6 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GameStateDTO } from '../dto/GameStateDTO';
 
-export type GameSceneHandle = {
-  /** Lance le dé et déplace le joueur courant */
-  rollAndMove: (steps: number) => Promise<void>;
-};
-
 const GameScene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boardMod = useRef<BoardModule>(null!);
@@ -33,69 +34,78 @@ const GameScene = () => {
   const nickname = user?.nickname || '';
   // On récupère l'état du jeu (gameState), l'action pour lancer le dé et si c'est à mon tour
   const { gameState, rollDice } = useGameSocket(roomId!);
+  const createdScenesRef = useRef(false);
+  const [introDone, setIntroDone] = useState(false);
 
-  // --- Stocke la dernière scène Babylon
-  const boardSceneRef = useRef<Scene | null>(null);
-
+  // 1) Initialisation du moteur Babylon + scène d'intro
   useEffect(() => {
     if (!canvasRef.current) return;
     const engine = new BabylonEngine(canvasRef.current);
     const sceneMgr = new SceneManager(engine.getEngine());
     sceneMgrRef.current = sceneMgr;
-    gameStateRef.current = gameState;
-    const indexOfPlayer =
-      gameState?.players.findIndex((p) => p.nickname === nickname) || 0; // On prend le joueur courant ou -1 par défaut
-    console.log(
-      `GameScene: joueur courant est ${nickname} (index ${indexOfPlayer})`,
+
+    // Scène d'introduction
+    sceneMgr.createScene('intro', (scene) => {
+      importSkyBox(scene);
+      initIntroScene(scene, sceneMgr).then(() => setIntroDone(true));
+    });
+
+    sceneMgr.run();
+    sceneMgr.switchTo('intro');
+
+    return () => engine.getEngine().dispose();
+  }, []);
+
+  // 2) Dès que gameState est non-null, on crée MAIN + mini-jeux & on bascule sur MAIN
+  useEffect(() => {
+    const sceneMgr = sceneMgrRef.current;
+    console.log(`GameState: ${gameState}`);
+    console.log(`sceneMgr: ${sceneMgr}`);
+    console.log(`createdScenesRef: ${createdScenesRef.current}`);
+    if (!sceneMgr || !gameState || (createdScenesRef.current && introDone))
+      return;
+    createdScenesRef.current = true;
+    const playerIdx = gameState.players.findIndex(
+      (p) => p.nickname === nickname,
     );
-    // Main board (piloté online)
-    sceneMgr.createScene('main', async (scene) => {
+
+    // 2.a) Scène principale "main"
+    sceneMgr.createScene('main', async (scene: Scene) => {
       importSkyBox(scene);
       await initBoard(
         scene,
         boardMod,
         diceMod,
-        () => gameStateRef.current, // getter de state serveur
+        () => gameStateRef.current,
         rollDice,
         nickname,
-          gameState!.players.length,
-          indexOfPlayer,
-          sceneMgr
+        gameState.players.length,
+        playerIdx,
+        sceneMgr,
       );
-      boardSceneRef.current = scene;
     });
 
-    // Scène d'introduction
-    sceneMgr.createScene('introScene', (scene) => {
+    // 2.b) Mini-jeu CloudGame
+    sceneMgr.createScene('CloudGame', (scene: Scene) => {
       importSkyBox(scene);
-      initIntroScene(scene, sceneMgr);
+      initCloudGame(scene, sceneMgr, playerIdx);
     });
 
-    // Scène CloudGame
-    sceneMgr.createScene('CloudGame', (scene) => {
+    // 2.c) Mini-jeu MiniGame1
+    sceneMgr.createScene('mini1', (scene: Scene) => {
       importSkyBox(scene);
-      initCloudGame(scene, sceneMgr,indexOfPlayer);
-    });
-    // Scene MiniGame1 (subway surfer)
-    sceneMgr.createScene('mini1', (scene) => {
-      importSkyBox(scene);
-      console.log('Initialisation du mini-jeu 1');
-      console.log('GameState actuel:', gameStateRef.current);
-
-      initMiniGame1(scene, canvasRef.current!, sceneMgr, indexOfPlayer);
+      initMiniGame1(scene, canvasRef.current!, sceneMgr, playerIdx);
     });
 
-    // Démarrage de la boucle et affichage de la scène principale
-    sceneMgr.run();
-    sceneMgr.switchTo('introScene');
-
-    return () => engine.getEngine().dispose();
-  }, []);
-
-  // --- Synchronisation à chaque update du state ---
-  useEffect(() => {
-    gameStateRef.current = gameState;
+    // Bascule vers la scène principale
+    sceneMgr.switchTo('main');
   }, [gameState]);
+
+  useEffect(() => {
+    if (gameState) {
+      gameStateRef.current = gameState;
+    }
+  }, [gameState, introDone]);
 
   return <canvas ref={canvasRef} style={{ width: '100%', height: '99%' }} />;
 };

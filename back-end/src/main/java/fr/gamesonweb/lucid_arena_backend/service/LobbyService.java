@@ -44,8 +44,8 @@ public class LobbyService {
                 .toList();
         state.setPlayers(playerProfiles);
         state.setCurrentPlayer(0); // Le premier joueur est le joueur 0
-        state.setPositions(new int[4]); // Par exemple, 4 joueurs, initialisés à 0
-        state.setScores(new int[4]); // Initialisation des scores à 0
+        state.setPositions(new int[playerProfiles.size()]);
+        state.setScores(new int[playerProfiles.size()]); // Initialisation des scores à 0
         state.setLastDiceRoll(""); // Dernier lancer de dés vide au début
         // Initialise joueurs, positions, scores, etc
         return state;

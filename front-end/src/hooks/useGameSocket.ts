@@ -39,6 +39,7 @@ export function useGameSocket(roomId: string) {
   // Pour envoyer le roll :
   function rollDice() {
     if (stompRef.current && stompRef.current.connected) {
+      console.log(`Rolling dice in room ${roomId}`);
       stompRef.current.publish({
         destination: `/app/game/${roomId}/roll`,
         body: '{}', // vide, le back sait qui tu es via JWT
