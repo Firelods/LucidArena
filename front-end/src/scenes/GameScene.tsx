@@ -51,12 +51,17 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     // Scène RainingGame
     sceneMgr.createScene('rainingGame', (scene) => {
       importSkyBox(scene);
-      initRainingGame(scene, 10, 0, sceneMgr);
+      initRainingGame(
+        scene,
+        Math.floor(Math.random() * (15 - 8)) + 8,
+        0,
+        sceneMgr,
+      );
     });
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('rainingGame');
+    sceneMgr.switchTo('main');
 
     return () => engine.getEngine().dispose();
   }, []);

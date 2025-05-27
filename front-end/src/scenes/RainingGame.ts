@@ -31,7 +31,7 @@ const GOOD = ['cherry.glb', 'etoile.glb'];
 const BAD = ['poubelle.glb'];
 const ALL_ASSETS = [...GOOD, ...BAD];
 const OBJECT_SCALE = 0.5;
-const COLLISION_THRESHOLD = OBJECT_SCALE; // Tolérance pour la collision
+const COLLISION_THRESHOLD = OBJECT_SCALE;
 const CHAR_FILES = [
   'character_blue.glb',
   'character_green.glb',
@@ -39,7 +39,7 @@ const CHAR_FILES = [
   'character.glb',
 ];
 const ASSETS_ROOT = '/assets/';
-const GAME_DURATION_MS = 20000; // 20 secondes
+const GAME_DURATION_MS = 20000;
 const FALL_SPEED = 0.08;
 const SPAWN_HEIGHT = Z_PLANE * 4;
 const SPAWN_INTERVAL_MS = 750;
@@ -47,9 +47,9 @@ const LANE_WIDTH = 5;
 const LANES = [-2, -1, 0, 1, 2];
 
 /**
- * Initialise et lance le jeu pour un seul joueur et renvoie le score final.
+ * Initialise et lance le jeu pour un seul joueur.
  * @param scene - La scène BabylonJS
- * @param validScore - Score de référence (non utilisé ici)
+ * @param validScore - Score de référence pour la victoire
  * @param activePlayer - Index du joueur actif
  * @returns Promise<number> score final
  */
@@ -58,7 +58,7 @@ export function initRainingGame(
   validScore: number,
   activePlayer: number,
   SceneManager: SceneManager,
-): Promise<number> {
+): Promise<void> {
   return new Promise(async (resolve) => {
     const engine = scene.getEngine();
     const canvas = engine.getRenderingCanvas() as HTMLCanvasElement;
@@ -66,7 +66,23 @@ export function initRainingGame(
     canvas.addEventListener('click', () => canvas.focus());
     canvas.focus();
 
-    // Préchargement des assets (GOOD & BAD)
+    // Caméra
+    let camera = scene.activeCamera as ArcRotateCamera;
+    if (!camera) {
+      camera = new ArcRotateCamera(
+        'Camera',
+        Math.PI / 2,
+        1.3,
+        Z_PLANE * 3,
+        new Vector3(0, 10, 10),
+        scene,
+      );
+      camera.lowerRadiusLimit = Z_PLANE * 3;
+      camera.upperRadiusLimit = Z_PLANE * 3;
+    }
+    scene.activeCamera = camera;
+
+    // Préchargement des assets
     const preloaded: Record<string, AbstractMesh> = {};
     await Promise.all(
       ALL_ASSETS.map(async (file) => {
@@ -83,24 +99,9 @@ export function initRainingGame(
       }),
     );
 
-    // Camera
-    let camera = scene.activeCamera as ArcRotateCamera;
-    if (!camera) {
-      camera = new ArcRotateCamera(
-        'Camera',
-        Math.PI / 2,
-        1.3,
-        Z_PLANE * 3,
-        new Vector3(0, 10, 10),
-        scene,
-      );
-      camera.lowerRadiusLimit = Z_PLANE * 3;
-      camera.upperRadiusLimit = Z_PLANE * 3;
-    }
-
     Inspector.Show(scene, { embedMode: true });
 
-    // Light et sol
+    // Lumière et sol
     new HemisphericLight('hemiLight', new Vector3(10, 2, 3), scene).intensity =
       1.2;
     const gridLength = Z_PLANE * 6;
@@ -129,7 +130,7 @@ export function initRainingGame(
       scene,
     ).material = mat;
 
-    // Score pour un seul joueur
+    // Variables de jeu
     let score = 0;
     const scoreUI = AdvancedDynamicTexture.CreateFullscreenUI(
       'scoreUI',
@@ -157,12 +158,11 @@ export function initRainingGame(
     scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     scoreText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
     scorePanel.addControl(scoreText);
-
     function updateScore() {
       scoreText.text = `Score: ${score} / ${validScore}`;
     }
 
-    // UI du timer
+    // Timer
     const inputUI = AdvancedDynamicTexture.CreateFullscreenUI(
       'inputUI',
       true,
@@ -200,22 +200,22 @@ export function initRainingGame(
     charMesh.position = new Vector3(0, 1, 0);
 
     let startTime = 0;
-    const player = { mesh: charMesh, lane: 0, alive: true };
+    const playerState = { mesh: charMesh, lane: 0, alive: true };
     let isMoving = false;
     let moveToX = 0;
 
     scene.onKeyboardObservable.add((kbInfo) => {
       if (kbInfo.type === KeyboardEventTypes.KEYDOWN) {
         kbInfo.event.preventDefault();
-        if (!player.alive || isMoving) return;
+        if (!playerState.alive || isMoving) return;
         switch (kbInfo.event.key) {
           case 'ArrowLeft':
             isMoving = true;
-            moveToX = player.mesh.position.x + LANE_WIDTH;
+            moveToX = playerState.mesh.position.x + LANE_WIDTH;
             break;
           case 'ArrowRight':
             isMoving = true;
-            moveToX = player.mesh.position.x - LANE_WIDTH;
+            moveToX = playerState.mesh.position.x - LANE_WIDTH;
             break;
         }
       }
@@ -233,7 +233,7 @@ export function initRainingGame(
       }
     });
 
-    // Boucle de spawn et fin de jeu
+    // Démarrage et boucle de spawn
     function startGame() {
       startTime = Date.now();
       const spawnHandle = setInterval(() => {
@@ -242,23 +242,19 @@ export function initRainingGame(
         const file = list[Math.floor(Math.random() * list.length)];
         const lane = LANES[Math.floor(Math.random() * LANES.length)];
 
-        // Clonage du mesh préchargé
         const prototype = preloaded[file];
         const inst = prototype.clone(
           `inst_${file}_${Date.now()}`,
           null,
         ) as AbstractMesh;
-
         inst.position = new Vector3(lane * LANE_WIDTH, SPAWN_HEIGHT, 0);
         inst.scaling = new Vector3(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
         inst.setEnabled(true);
 
-        // Gestion de la chute et des collisions par coordonnées
         const cb = () => {
           inst.position.y -= FALL_SPEED;
           const dx = Math.abs(inst.position.x - charMesh.position.x);
           const dy = inst.position.y - charMesh.position.y;
-
           if (dx < COLLISION_THRESHOLD && dy <= COLLISION_THRESHOLD + 2) {
             score += isGood ? 1 : -1;
             updateScore();
@@ -272,17 +268,58 @@ export function initRainingGame(
         scene.onBeforeRenderObservable.add(cb);
       }, SPAWN_INTERVAL_MS);
 
+      // Fin du jeu
       setTimeout(() => {
         clearInterval(spawnHandle);
-        resolve(score);
+        const endUI = AdvancedDynamicTexture.CreateFullscreenUI(
+          'endUI',
+          true,
+          scene,
+        );
+        const endPanel = new Rectangle('endPanel');
+        endPanel.width = '300px';
+        endPanel.height = '150px';
+        endPanel.cornerRadius = 12;
+        endPanel.background = '#393e46';
+        endPanel.thickness = 2;
+        endPanel.color = '#00adb5';
+        endPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        endPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+        endUI.addControl(endPanel);
+
+        const message = score >= validScore ? 'Victoire !' : 'Défaite !';
+        const endText = new TextBlock(
+          'endText',
+          `${message} Score: ${score} / ${validScore}`,
+        );
+        endText.fontSize = 20;
+        endText.color = 'white';
+        endText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        endText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+        endPanel.addControl(endText);
+
+        const okBtn = Button.CreateSimpleButton('okBtn', 'OK');
+        okBtn.width = '100px';
+        okBtn.height = '40px';
+        okBtn.top = '40px';
+        okBtn.cornerRadius = 10;
+        okBtn.background = '#00adb5';
+        okBtn.color = 'white';
+        okBtn.onPointerUpObservable.add(() => {
+          endUI.dispose();
+          resolve(score);
+          scene.dispose(); // Nettoyage de la scène
+          SceneManager.switchTo('main'); // Retour à la scène principale
+        });
+        endPanel.addControl(okBtn);
       }, GAME_DURATION_MS);
     }
 
-    // Popup de démarrage
+    // Popup de départ
     const gui = AdvancedDynamicTexture.CreateFullscreenUI('gui', true, scene);
     const startPanel = new Rectangle('startPanel');
-    startPanel.width = '300px';
-    startPanel.height = '150px';
+    startPanel.width = '350px';
+    startPanel.height = '200px';
     startPanel.cornerRadius = 12;
     startPanel.background = '#393e46';
     startPanel.thickness = 2;
@@ -291,17 +328,22 @@ export function initRainingGame(
     startPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
     gui.addControl(startPanel);
 
-    const startText = new TextBlock('startText', 'Cliquez pour commencer !');
-    startText.fontSize = 18;
+    const startText = new TextBlock(
+      'startText',
+      'Utilisez les flèches ← et → pour déplacer votre personnage ; attrapez les bonnes icônes et évitez les poubelles. Cliquez sur "Jouer" pour commencer !',
+    );
+    startText.fontSize = 16;
     startText.color = 'white';
     startText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     startText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    startText.textWrapping = true;
+    startText.paddingBottom = '10px';
     startPanel.addControl(startText);
 
     const playBtn = Button.CreateSimpleButton('playBtn', 'Jouer');
     playBtn.width = '100px';
     playBtn.height = '40px';
-    playBtn.top = '40px';
+    playBtn.top = '70px';
     playBtn.cornerRadius = 10;
     playBtn.background = '#00adb5';
     playBtn.color = 'white';
