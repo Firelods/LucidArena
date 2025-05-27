@@ -41,7 +41,6 @@ export async function initCloudGame(
     Vector3.Zero(),
     scene,
   );
-  camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
 
   // Focus clavier
   const canvas = scene.getEngine().getRenderingCanvas() as HTMLCanvasElement;
