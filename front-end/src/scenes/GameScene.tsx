@@ -8,6 +8,7 @@ import { SceneManager } from '../engine/SceneManager';
 import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
+import { initIntroScene } from './IntroScene';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -32,8 +33,15 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     // scène principale
     sceneMgr.createScene('main', async (scene) => {
       importSkyBox(scene);
-      initBoard(scene, boardMod, diceMod, playerCount, currentPlayer);
+      initBoard(scene, boardMod, diceMod, playerCount, currentPlayer, sceneMgr);
     });
+
+    // Scène d'introduction
+    sceneMgr.createScene('introScene', (scene) => {
+      importSkyBox(scene);
+      initIntroScene(scene, sceneMgr);
+    });
+
     // Scène CloudGame
     sceneMgr.createScene('CloudGame', (scene) => {
       importSkyBox(scene);
@@ -47,7 +55,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('main');
+    sceneMgr.switchTo('introScene');
 
     return () => engine.getEngine().dispose();
   }, []);
@@ -60,6 +68,8 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       await boardMod.current.movePlayer(currentPlayer, steps);
       
       currentPlayer = (currentPlayer + 1) % playerCount;
+      sceneMgrRef.current?.switchTo('CloudGame');
+
     },
   }));
 
