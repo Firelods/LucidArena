@@ -3,16 +3,21 @@ import {
   HemisphericLight,
   Scene,
   Vector3,
+  Animation,
+  EasingFunction,
+  QuadraticEase,
 } from '@babylonjs/core';
 import {
   AdvancedDynamicTexture,
+  Image,
+  Control,
   Rectangle,
   TextBlock,
   Button,
-  Control,
 } from '@babylonjs/gui';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
+import { SceneManager } from '../engine/SceneManager';
 
 export async function initBoard(
   scene: Scene,
@@ -20,8 +25,9 @@ export async function initBoard(
   diceMod: React.RefObject<DiceModule>,
   playerCount: number,
   currentPlayer: number,
+  sceneMgr: SceneManager,
 ): Promise<void> {
-  // Caméra
+  // 1) Caméra
   const camera = new ArcRotateCamera(
     'camera',
     -1,
@@ -32,15 +38,16 @@ export async function initBoard(
   );
   scene.activeCamera = camera;
 
-  // Lumière
-  const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
-  light.intensity = 0.8;
+  // 2) Lumière
+  new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
 
-  // Modules Plateau et Dé
+  // —————————————
+  // Début de la Board Scene
+  // —————————————
+
+  // 3) Modules Plateau et Dé
   boardMod.current = new BoardModule(scene);
   diceMod.current = new DiceModule(scene, camera);
-  // Inspector.Show(scene, { embedMode: true });
-
   await boardMod.current.init(playerCount, [
     '/assets/character.glb',
     '/assets/character_pink.glb',
@@ -50,9 +57,60 @@ export async function initBoard(
   await diceMod.current.init();
   await diceMod.current.hide();
 
-  // GUI
+  // 4) GUI principal
   const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
+  // —————————————
+  // Animation de balayage du nuage
+  // —————————————
+  const slideUI = AdvancedDynamicTexture.CreateFullscreenUI(
+    'slideUI',
+    true,
+    scene,
+  );
+  const cloud = new Image('cloudSweep', '/assets/textures/cloud.png');
+  cloud.width = '150%';
+  cloud.height = '300%';
+  cloud.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+  cloud.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
 
+  // Position initiale hors-écran
+  const canvas = scene.getEngine().getRenderingCanvas()!;
+  const cloudWidth = canvas.width * 1.5; // 150% de l’écran
+  const cloudCenter = -cloudWidth / 4; // centre du nuage
+  cloud.left = -cloudWidth;
+  slideUI.addControl(cloud);
+
+  // Pause éventuelle pour synchroniser (facultatif)
+  await new Promise((res) => setTimeout(res, 500)); // petit délai si besoin
+
+  // Préparation de l’easing
+  const easing = new QuadraticEase();
+  easing.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+
+  // Création de l’animation
+  const slideAnim = new Animation(
+    'slideCloud',
+    'left',
+    30, // fps
+    Animation.ANIMATIONTYPE_FLOAT,
+    Animation.ANIMATIONLOOPMODE_CONSTANT,
+  );
+  slideAnim.setEasingFunction(easing);
+  slideAnim.setKeys([
+    { frame: 0, value: cloudCenter },
+    { frame: 60, value: canvas.width },
+  ]);
+  cloud.animations = [slideAnim];
+
+  // Lancer et attendre la fin
+  const anim = scene.beginAnimation(cloud, 0, 60, false, 1);
+  await new Promise<void>((res) =>
+    anim.onAnimationEndObservable.addOnce(() => res()),
+  );
+  // Cleanup de l’UI de slide
+  slideUI.dispose();
+
+  // Fonction d’affichage des popups
   async function showPopups(messages: string[]): Promise<void> {
     return new Promise((resolve) => {
       let idx = 0;
@@ -94,7 +152,7 @@ export async function initBoard(
     });
   }
 
-  // Affichage des popups d'accueil
+  // 5) Affichage des popups d’accueil
   await showPopups([
     'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
     'À tour de rôle, affrontez-vous sur le plateau.',
@@ -104,7 +162,7 @@ export async function initBoard(
     'Bonne chance et amusez-vous bien !',
   ]);
 
-  // 1) Création du bouton BabylonJS
+  // 6) Bouton lancer de dé
   const rollBtn = Button.CreateImageOnlyButton(
     'rollBtn',
     '/assets/bouton_dice.png',
@@ -119,11 +177,9 @@ export async function initBoard(
   rollBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
   rollBtn.left = '-20px';
   rollBtn.top = '-20px';
-
-  // 4) Ajout du bouton à la GUI
   gui.addControl(rollBtn);
 
-  // 5) Gestion du clic sur le bouton
+  // 7) Gestion du clic
   rollBtn.onPointerUpObservable.add(async () => {
     const n = Math.floor(Math.random() * 6) + 1;
     await diceMod.current.show();
@@ -131,5 +187,6 @@ export async function initBoard(
     await diceMod.current.hide();
     await boardMod.current.movePlayer(currentPlayer, n);
     currentPlayer = (currentPlayer + 1) % playerCount;
+    sceneMgr.switchTo('mini1');
   });
 }
