@@ -47,7 +47,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('CloudGame');
+    sceneMgr.switchTo('main');
 
     return () => engine.getEngine().dispose();
   }, []);
@@ -58,7 +58,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       await diceMod.current.roll(steps);
       await diceMod.current.hide();
       await boardMod.current.movePlayer(currentPlayer, steps);
-
+      
       currentPlayer = (currentPlayer + 1) % playerCount;
     },
   }));
