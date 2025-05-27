@@ -1,5 +1,5 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
@@ -10,6 +10,7 @@ import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initRainingGame } from './RainingGame';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
+import { initMiniGame1 } from './MiniGame1';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -47,16 +48,21 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       initMiniGame1(scene, canvasRef.current!, sceneMgr);
     });
 
+    // Scène RainingGame
+    sceneMgr.createScene('rainingGame', (scene) => {
+      importSkyBox(scene);
+      initRainingGame(scene, 10, 0, sceneMgr);
+    });
+
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('main');
+    sceneMgr.switchTo('rainingGame');
 
     return () => engine.getEngine().dispose();
   }, []);
 
   useImperativeHandle(ref, () => ({
     async rollAndMove(steps: number) {
-      sceneMgrRef.current?.createScene('mini1', initRainingGame);
       await diceMod.current.show();
       await diceMod.current.roll(steps);
       await diceMod.current.hide();

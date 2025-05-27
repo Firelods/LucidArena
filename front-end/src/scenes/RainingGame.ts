@@ -11,6 +11,8 @@ import {
   AbstractMesh,
   StandardMaterial,
   SceneLoader,
+  DynamicTexture,
+  KeyboardEventTypes,
 } from '@babylonjs/core';
 import {
   AdvancedDynamicTexture,
@@ -24,10 +26,12 @@ import { Inspector } from '@babylonjs/inspector';
 
 // --- Constants & Assets ---
 const Z_PLANE = 5;
-const GOOD_PROBABILITY = 0.4;
+const GOOD_PROBABILITY = 0.5;
 const GOOD = ['cherry.glb', 'etoile.glb'];
 const BAD = ['poubelle.glb'];
+const ALL_ASSETS = [...GOOD, ...BAD];
 const OBJECT_SCALE = 0.5;
+const COLLISION_THRESHOLD = OBJECT_SCALE; // Tolérance pour la collision
 const CHAR_FILES = [
   'character_blue.glb',
   'character_green.glb',
@@ -36,201 +40,275 @@ const CHAR_FILES = [
 ];
 const ASSETS_ROOT = '/assets/';
 const GAME_DURATION_MS = 20000; // 20 secondes
-const FALL_SPEED = 0.05;
-const SPAWN_HEIGHT = Z_PLANE * 3;
-const SPAWN_INTERVAL_MS = 500;
-const LANE_WIDTH = 3;
+const FALL_SPEED = 0.08;
+const SPAWN_HEIGHT = Z_PLANE * 4;
+const SPAWN_INTERVAL_MS = 750;
+const LANE_WIDTH = 5;
 const LANES = [-2, -1, 0, 1, 2];
 
-export async function initRainingGame(
+/**
+ * Initialise et lance le jeu pour un seul joueur et renvoie le score final.
+ * @param scene - La scène BabylonJS
+ * @param validScore - Score de référence (non utilisé ici)
+ * @param activePlayer - Index du joueur actif
+ * @returns Promise<number> score final
+ */
+export function initRainingGame(
   scene: Scene,
-  targetScore: number,
-  onFinish: (won: boolean) => void,
-): Promise<void> {
-  // Setup engine and canvas
-  const engine = scene.getEngine();
-  const canvas = engine.getRenderingCanvas() as HTMLCanvasElement;
-  canvas.tabIndex = 0;
-  canvas.addEventListener('click', () => canvas.focus());
-  canvas.focus();
+  validScore: number,
+  activePlayer: number,
+  SceneManager: SceneManager,
+): Promise<number> {
+  return new Promise(async (resolve) => {
+    const engine = scene.getEngine();
+    const canvas = engine.getRenderingCanvas() as HTMLCanvasElement;
+    canvas.tabIndex = 0;
+    canvas.addEventListener('click', () => canvas.focus());
+    canvas.focus();
 
-  // Camera
-  let camera = scene.activeCamera as ArcRotateCamera;
-  if (!camera) {
-    camera = new ArcRotateCamera(
-      'Camera',
-      Math.PI / 2,
-      1.3,
-      Z_PLANE * 3,
-      new Vector3(0, 5, 0),
+    // Préchargement des assets (GOOD & BAD)
+    const preloaded: Record<string, AbstractMesh> = {};
+    await Promise.all(
+      ALL_ASSETS.map(async (file) => {
+        const result = await SceneLoader.ImportMeshAsync(
+          '',
+          ASSETS_ROOT,
+          file,
+          scene,
+        );
+        const mesh = result.meshes[0] as AbstractMesh;
+        mesh.isVisible = false;
+        mesh.setEnabled(false);
+        preloaded[file] = mesh;
+      }),
+    );
+
+    // Camera
+    let camera = scene.activeCamera as ArcRotateCamera;
+    if (!camera) {
+      camera = new ArcRotateCamera(
+        'Camera',
+        Math.PI / 2,
+        1.3,
+        Z_PLANE * 3,
+        new Vector3(0, 10, 10),
+        scene,
+      );
+      camera.lowerRadiusLimit = Z_PLANE * 3;
+      camera.upperRadiusLimit = Z_PLANE * 3;
+    }
+
+    Inspector.Show(scene, { embedMode: true });
+
+    // Light et sol
+    new HemisphericLight('hemiLight', new Vector3(10, 2, 3), scene).intensity =
+      1.2;
+    const gridLength = Z_PLANE * 6;
+    const gridWidth = Z_PLANE * 9;
+    const cols = 10;
+    const rows = Math.ceil((cols * gridLength) / gridWidth);
+    const size = 512;
+    const dt = new DynamicTexture('grid', { width: size, height: size }, scene);
+    const ctx = dt.getContext();
+    const w = size / cols;
+    const h = size / rows;
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        ctx.fillStyle = (i + j) % 2 === 0 ? '#fff' : '#000';
+        ctx.fillRect(i * w, j * h, w, h);
+      }
+    }
+    dt.update();
+    const mat = new StandardMaterial('gridMat', scene);
+    mat.diffuseTexture = dt;
+    mat.specularColor = Color3.Black();
+    mat.emissiveColor = Color3.White();
+    MeshBuilder.CreateGround(
+      'ground',
+      { width: gridWidth, height: gridLength },
+      scene,
+    ).material = mat;
+
+    // Score pour un seul joueur
+    let score = 0;
+    const scoreUI = AdvancedDynamicTexture.CreateFullscreenUI(
+      'scoreUI',
+      true,
       scene,
     );
-    camera.lowerRadiusLimit = Z_PLANE * 3;
-    camera.upperRadiusLimit = Z_PLANE * 3;
-    camera.attachControl(canvas, true);
-  }
-  Inspector.Show(scene, { embedMode: true });
+    const scorePanel = new Rectangle('scorePanel');
+    scorePanel.width = '200px';
+    scorePanel.height = '60px';
+    scorePanel.cornerRadius = 10;
+    scorePanel.background = '#393e46';
+    scorePanel.thickness = 2;
+    scorePanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+    scorePanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+    scorePanel.left = '10px';
+    scorePanel.top = '10px';
+    scoreUI.addControl(scorePanel);
 
-  // Light and ground
-  new HemisphericLight('hemiLight', new Vector3(10, 2, 3), scene).intensity =
-    1.2;
-  const ground = MeshBuilder.CreateGround(
-    'ground',
-    { width: Z_PLANE * 6, height: Z_PLANE * 6 },
-    scene,
-  );
-  const groundMat = new StandardMaterial('groundMat', scene);
-  groundMat.diffuseColor = new Color3(0.95, 0.95, 0.95);
-  ground.material = groundMat;
+    const scoreText = new TextBlock(
+      'scoreText',
+      `Score: ${score} / ${validScore}`,
+    );
+    scoreText.fontSize = 24;
+    scoreText.color = 'white';
+    scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    scoreText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    scorePanel.addControl(scoreText);
 
-  // Character
-  const { meshes: charMeshes } = await SceneLoader.ImportMeshAsync(
-    '',
-    ASSETS_ROOT,
-    CHAR_FILES[0],
-    scene,
-  );
-  const charMesh = charMeshes[0] as AbstractMesh;
-  charMesh.position = new Vector3(0, 1, 0);
-
-  // Score & Timer state
-  let score = 0;
-  const startTime = Date.now();
-
-  // Permanent popup-style overlay top-left
-  const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
-  const panel = new Rectangle('statusPanel');
-  panel.width = '200px';
-  panel.height = '70px';
-  panel.cornerRadius = 12;
-  panel.background = '#393e46cc';
-  panel.thickness = 2;
-  panel.color = '#00adb5';
-  panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-  panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  panel.paddingLeft = '4px';
-  panel.paddingTop = '4px';
-  panel.paddingRight = '4px';
-  panel.paddingBottom = '4px';
-  gui.addControl(panel);
-
-  const scoreText = new TextBlock('scoreText', `Score: 0`);
-  scoreText.color = 'white';
-  scoreText.fontSize = 16;
-  scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  panel.addControl(scoreText);
-
-  const timerText = new TextBlock(
-    'timerText',
-    `Temps: ${(GAME_DURATION_MS / 1000).toFixed(1)}s`,
-  );
-  timerText.color = 'white';
-  timerText.fontSize = 16;
-  timerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  timerText.top = '20px';
-  panel.addControl(timerText);
-
-  // Player movement
-  const player = { mesh: charMesh, lane: 0, alive: true };
-  let isMoving = false;
-  let moveToX = 0;
-  window.onkeydown = (e) => {
-    if (!player.alive || isMoving) return;
-    const half = ground.getBoundingInfo().boundingBox.extendSize.x;
-    if (e.key === 'ArrowLeft' && player.lane > -half) {
-      isMoving = true;
-      moveToX = player.mesh.position.x + LANE_WIDTH;
-      player.lane--;
+    function updateScore() {
+      scoreText.text = `Score: ${score} / ${validScore}`;
     }
-    if (e.key === 'ArrowRight' && player.lane < half) {
-      isMoving = true;
-      moveToX = player.mesh.position.x - LANE_WIDTH;
-      player.lane++;
-    }
-  };
 
-  // Frame update
-  scene.onBeforeRenderObservable.add(() => {
-    if (isMoving) {
-      charMesh.position.x = moveToX;
-      isMoving = false;
-    }
-    // Update timer
-    const elapsed = Date.now() - startTime;
-    const rem = Math.max(0, GAME_DURATION_MS - elapsed) / 1000;
-    timerText.text = `Temps: ${rem.toFixed(1)}s`;
-  });
+    // UI du timer
+    const inputUI = AdvancedDynamicTexture.CreateFullscreenUI(
+      'inputUI',
+      true,
+      scene,
+    );
+    const timerText = new TextBlock(
+      'timerText',
+      `Temps: ${(GAME_DURATION_MS / 1000).toFixed(1)}s`,
+    );
+    const timerPanel = new Rectangle('timerPanel');
+    timerPanel.width = '200px';
+    timerPanel.height = '60px';
+    timerPanel.cornerRadius = 20;
+    timerPanel.background = '#393e46cc';
+    timerPanel.color = '#00adb5';
+    timerPanel.thickness = 2;
+    timerPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    timerPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+    timerPanel.top = '-20px';
+    inputUI.addControl(timerPanel);
+    timerText.fontSize = 30;
+    timerText.color = 'white';
+    timerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    timerText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    timerPanel.addControl(timerText);
 
-  // Object spawning and collision
-  const spawnHandle = setInterval(async () => {
-    const isGood = Math.random() < GOOD_PROBABILITY;
-    const list = isGood ? GOOD : BAD;
-    const file = list[Math.floor(Math.random() * list.length)];
-    const { meshes } = await SceneLoader.ImportMeshAsync(
+    // Chargement du personnage
+    const { meshes: charMeshes } = await SceneLoader.ImportMeshAsync(
       '',
       ASSETS_ROOT,
-      file,
+      CHAR_FILES[activePlayer],
       scene,
     );
-    const inst = meshes[0] as AbstractMesh;
-    const lane = LANES[Math.floor(Math.random() * LANES.length)];
-    inst.position = new Vector3(lane * LANE_WIDTH, SPAWN_HEIGHT, 0);
-    inst.scaling = new Vector3(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
-    const cb = () => {
-      inst.position.y -= FALL_SPEED;
-      if (inst.intersectsMesh(charMesh, false)) {
-        score += isGood ? 1 : -1;
-        scoreText.text = `Score: ${score >= 0 ? score : score}`;
-        scene.onBeforeRenderObservable.removeCallback(cb);
-        inst.dispose();
-      } else if (inst.position.y <= 0) {
-        scene.onBeforeRenderObservable.removeCallback(cb);
-        inst.dispose();
+    const charMesh = charMeshes[0] as AbstractMesh;
+    charMesh.position = new Vector3(0, 1, 0);
+
+    let startTime = 0;
+    const player = { mesh: charMesh, lane: 0, alive: true };
+    let isMoving = false;
+    let moveToX = 0;
+
+    scene.onKeyboardObservable.add((kbInfo) => {
+      if (kbInfo.type === KeyboardEventTypes.KEYDOWN) {
+        kbInfo.event.preventDefault();
+        if (!player.alive || isMoving) return;
+        switch (kbInfo.event.key) {
+          case 'ArrowLeft':
+            isMoving = true;
+            moveToX = player.mesh.position.x + LANE_WIDTH;
+            break;
+          case 'ArrowRight':
+            isMoving = true;
+            moveToX = player.mesh.position.x - LANE_WIDTH;
+            break;
+        }
       }
-    };
-    scene.onBeforeRenderObservable.add(cb);
-  }, SPAWN_INTERVAL_MS);
-
-  // End of game popup
-  setTimeout(async () => {
-    clearInterval(spawnHandle);
-    const won = score >= targetScore;
-    const endPanel = new Rectangle('endPanel');
-    endPanel.width = '350px';
-    endPanel.height = '180px';
-    endPanel.cornerRadius = 14;
-    endPanel.background = '#393e46';
-    endPanel.thickness = 3;
-    endPanel.color = '#00adb5';
-    endPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    endPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    gui.addControl(endPanel);
-
-    const msg = new TextBlock(
-      'endText',
-      won
-        ? `🎉 Bien joué ! Vous avez ${score} points.`
-        : `😞 Trop nul ! Seulement ${score} points.`,
-    );
-    msg.fontSize = 20;
-    msg.color = 'white';
-    msg.textWrapping = true;
-    msg.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    msg.paddingTop = '12px';
-    endPanel.addControl(msg);
-
-    const btn = Button.CreateSimpleButton('endBtn', 'Quitter');
-    btn.width = '120px';
-    btn.height = '50px';
-    btn.cornerRadius = 10;
-    btn.top = '60px';
-    btn.background = '#00adb5';
-    btn.color = 'white';
-    btn.fontSize = 18;
-    btn.onPointerUpObservable.add(() => {
-      gui.dispose();
-      onFinish(won);
     });
-    endPanel.addControl(btn);
-  }, GAME_DURATION_MS);
+
+    scene.onBeforeRenderObservable.add(() => {
+      if (isMoving) {
+        charMesh.position.x = moveToX;
+        isMoving = false;
+      }
+      if (startTime > 0) {
+        const elapsed = Date.now() - startTime;
+        const rem = Math.max(0, GAME_DURATION_MS - elapsed) / 1000;
+        timerText.text = `Temps: ${rem.toFixed(1)}s`;
+      }
+    });
+
+    // Boucle de spawn et fin de jeu
+    function startGame() {
+      startTime = Date.now();
+      const spawnHandle = setInterval(() => {
+        const isGood = Math.random() < GOOD_PROBABILITY;
+        const list = isGood ? GOOD : BAD;
+        const file = list[Math.floor(Math.random() * list.length)];
+        const lane = LANES[Math.floor(Math.random() * LANES.length)];
+
+        // Clonage du mesh préchargé
+        const prototype = preloaded[file];
+        const inst = prototype.clone(
+          `inst_${file}_${Date.now()}`,
+          null,
+        ) as AbstractMesh;
+
+        inst.position = new Vector3(lane * LANE_WIDTH, SPAWN_HEIGHT, 0);
+        inst.scaling = new Vector3(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
+        inst.setEnabled(true);
+
+        // Gestion de la chute et des collisions par coordonnées
+        const cb = () => {
+          inst.position.y -= FALL_SPEED;
+          const dx = Math.abs(inst.position.x - charMesh.position.x);
+          const dy = inst.position.y - charMesh.position.y;
+
+          if (dx < COLLISION_THRESHOLD && dy <= COLLISION_THRESHOLD + 2) {
+            score += isGood ? 1 : -1;
+            updateScore();
+            scene.onBeforeRenderObservable.removeCallback(cb);
+            inst.dispose();
+          } else if (inst.position.y <= 0) {
+            scene.onBeforeRenderObservable.removeCallback(cb);
+            inst.dispose();
+          }
+        };
+        scene.onBeforeRenderObservable.add(cb);
+      }, SPAWN_INTERVAL_MS);
+
+      setTimeout(() => {
+        clearInterval(spawnHandle);
+        resolve(score);
+      }, GAME_DURATION_MS);
+    }
+
+    // Popup de démarrage
+    const gui = AdvancedDynamicTexture.CreateFullscreenUI('gui', true, scene);
+    const startPanel = new Rectangle('startPanel');
+    startPanel.width = '300px';
+    startPanel.height = '150px';
+    startPanel.cornerRadius = 12;
+    startPanel.background = '#393e46';
+    startPanel.thickness = 2;
+    startPanel.color = '#00adb5';
+    startPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    startPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    gui.addControl(startPanel);
+
+    const startText = new TextBlock('startText', 'Cliquez pour commencer !');
+    startText.fontSize = 18;
+    startText.color = 'white';
+    startText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+    startText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    startPanel.addControl(startText);
+
+    const playBtn = Button.CreateSimpleButton('playBtn', 'Jouer');
+    playBtn.width = '100px';
+    playBtn.height = '40px';
+    playBtn.top = '40px';
+    playBtn.cornerRadius = 10;
+    playBtn.background = '#00adb5';
+    playBtn.color = 'white';
+    playBtn.onPointerUpObservable.add(() => {
+      gui.dispose();
+      startGame();
+    });
+    startPanel.addControl(playBtn);
+  });
 }
