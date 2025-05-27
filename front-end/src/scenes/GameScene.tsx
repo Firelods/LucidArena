@@ -55,7 +55,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
 
     // Démarrage de la boucle et affichage de la scène principale
     sceneMgr.run();
-    sceneMgr.switchTo('mini1');
+    sceneMgr.switchTo('introScene');
 
     return () => engine.getEngine().dispose();
   }, []);
