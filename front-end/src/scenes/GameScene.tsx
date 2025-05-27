@@ -45,7 +45,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     // Scène CloudGame
     sceneMgr.createScene('CloudGame', (scene) => {
       importSkyBox(scene);
-      initCloudGame(scene, sceneMgr);
+      initCloudGame(scene, sceneMgr,2);
     });
     // Scene MiniGame1 (subway surfer)
     sceneMgr.createScene('mini1', (scene) => {
@@ -66,6 +66,7 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
       await diceMod.current.roll(steps);
       await diceMod.current.hide();
       await boardMod.current.movePlayer(currentPlayer, steps);
+      
       currentPlayer = (currentPlayer + 1) % playerCount;
       sceneMgrRef.current?.switchTo('CloudGame');
 
