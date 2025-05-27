@@ -56,12 +56,11 @@ export async function initBoard(
   // 3) Modules Plateau et Dé
   boardMod.current = new BoardModule(scene);
   diceMod.current = new DiceModule(scene, camera);
-  await boardMod.current.init(playerCount, [
-    '/assets/character.glb',
-    '/assets/character_pink.glb',
-    '/assets/character_blue.glb',
-    '/assets/character_green.glb',
-  ]);
+  const initialGameState = getGameState();
+  if (!initialGameState) {
+    throw new Error('Game state is not available during board initialization');
+  }
+  await boardMod.current.init(playerCount, initialGameState);
   await diceMod.current.init();
   await diceMod.current.hide();
 

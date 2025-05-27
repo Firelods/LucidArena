@@ -59,8 +59,8 @@ const GameScene = () => {
   // 2) Dès que gameState est non-null, on crée MAIN + mini-jeux & on bascule sur MAIN
   useEffect(() => {
     const sceneMgr = sceneMgrRef.current;
-    console.log(`GameState: ${gameState}`);
-    console.log(`sceneMgr: ${sceneMgr}`);
+    console.log('GameState: ', gameStateRef.current);
+    console.log('sceneMgr: ', sceneMgr);
     console.log(`createdScenesRef: ${createdScenesRef.current}`);
     if (!sceneMgr || !gameState || (createdScenesRef.current && introDone))
       return;
@@ -68,6 +68,7 @@ const GameScene = () => {
     const playerIdx = gameState.players.findIndex(
       (p) => p.nickname === nickname,
     );
+    gameStateRef.current = gameState;
 
     // 2.a) Scène principale "main"
     sceneMgr.createScene('main', async (scene: Scene) => {

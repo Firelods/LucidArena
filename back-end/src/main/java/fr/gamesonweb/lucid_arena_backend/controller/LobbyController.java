@@ -1,5 +1,6 @@
 package fr.gamesonweb.lucid_arena_backend.controller;
 
+import fr.gamesonweb.lucid_arena_backend.dto.GameStateDTO;
 import fr.gamesonweb.lucid_arena_backend.dto.ListPlayerJoinDTO;
 import fr.gamesonweb.lucid_arena_backend.dto.PlayerJoinDTO;
 import fr.gamesonweb.lucid_arena_backend.entity.GameState;

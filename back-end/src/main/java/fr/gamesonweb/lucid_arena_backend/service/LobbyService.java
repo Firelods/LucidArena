@@ -2,6 +2,7 @@ package fr.gamesonweb.lucid_arena_backend.service;
 
 import fr.gamesonweb.lucid_arena_backend.entity.GameState;
 import fr.gamesonweb.lucid_arena_backend.entity.PlayerProfile;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,7 +11,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@AllArgsConstructor
 public class LobbyService {
+    public static final int TILE_COUNT = 44;
+    private final BoardGenerator boardGenerator;
 
     private final Map<String, Set<String>> rooms = new ConcurrentHashMap<>();
     private final Map<String, GameState> gameStates = new ConcurrentHashMap<>();
@@ -47,7 +51,8 @@ public class LobbyService {
         state.setPositions(new int[playerProfiles.size()]);
         state.setScores(new int[playerProfiles.size()]); // Initialisation des scores à 0
         state.setLastDiceRoll(""); // Dernier lancer de dés vide au début
-        // Initialise joueurs, positions, scores, etc
+        state.setBoardTypes(boardGenerator.generate(TILE_COUNT));
+
         return state;
     }
 }

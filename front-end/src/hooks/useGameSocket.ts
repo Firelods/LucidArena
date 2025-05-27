@@ -23,6 +23,12 @@ export function useGameSocket(roomId: string) {
           console.log(state);
           setGameState(state);
         });
+        stomp.subscribe(`/topic/game/${roomId}/init`, (msg) => {
+          const state: GameStateDTO = JSON.parse(msg.body);
+          console.log(`Game initialized: ${JSON.stringify(state)}`);
+
+          setGameState(state);
+        });
 
         stomp.publish({
           destination: `/app/game/${roomId}/ping`,
