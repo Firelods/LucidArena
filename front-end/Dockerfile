@@ -1,6 +1,4 @@
 # --- Etape 1 : Build de l'app ---
-
-# Utilise une image Node.js pour construire l'application React
 FROM node:22-alpine AS builder
 
 # Définit le répertoire de travail
