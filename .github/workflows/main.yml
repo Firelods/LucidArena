@@ -24,8 +24,8 @@ jobs:
     - name: Build & Push Front (React)
       uses: docker/build-push-action@v5
       with:
-        context: ./front-end/
-        file: Dockerfile
+        context: ./front-end
+        file: ./front-end/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
 
@@ -34,6 +34,6 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: ./back-end/
-        file: Dockerfile
+        file: ./back-end/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/mon-back:latest
