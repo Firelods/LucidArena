@@ -37,3 +37,7 @@ jobs:
         file: ./back-end/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+        build-args: |
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
