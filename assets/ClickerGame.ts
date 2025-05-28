@@ -17,6 +17,7 @@ import {
   TextBlock,
   Rectangle,
   Control,
+  Image,  
 } from '@babylonjs/gui';
 
 import '@babylonjs/inspector';
@@ -54,11 +55,6 @@ export async function initClickerGame(
   );
   const charMesh = charMeshes[0] as AbstractMesh;
   charMesh.position = new Vector3(9.6, 20, 0);
-
-  let score = 0;
-  const duration = 20;
-  const objectif = Math.floor(Math.random() * (100-50)) + 50; 
-
 
   // Sol damier
   const Z_PLANE = 5;
@@ -121,14 +117,12 @@ export async function initClickerGame(
   // Liane
   let rotationNode: TransformNode | null = null;
   let pivotNode: TransformNode | null = null;
-  let hauteurLiane = 0;
-  
+
   try {
     const result = await SceneLoader.ImportMeshAsync('', '/assets/', 'liane.glb', scene);
     const lianeMeshes = result.meshes.filter(m => m.getTotalVertices() > 0);
+    if (!lianeMeshes.length) throw new Error('Pas de mesh trouvé !');
     const minY = Math.min(...lianeMeshes.map(mesh => mesh.getBoundingInfo().boundingBox.minimum.y));
-    const maxY = Math.max(...lianeMeshes.map(mesh => mesh.getBoundingInfo().boundingBox.maximum.y));
-    hauteurLiane = maxY - minY;
     lianeMeshes.forEach(mesh => { mesh.position.y -= minY; });
     pivotNode = new TransformNode('pivotNode', scene);
     pivotNode.position = Vector3.Zero();
@@ -143,30 +137,51 @@ export async function initClickerGame(
     console.error('Erreur lors du chargement du modèle GLB :', error);
   }
 
-  // Fleche
-  try {
-    const { meshes: arrowMeshes } = await SceneLoader.ImportMeshAsync(
-      '',
-      '/assets/',
-      'arrow.glb',
-      scene
-    );
-
-    const arrowMesh = arrowMeshes[0] as AbstractMesh;   
-    arrowMesh.position = new Vector3(15, 20.5 + 0.114*objectif, 0);
-    arrowMesh.scaling = new Vector3(10, 10, 10);
-  } catch (err) { 
-    console.error('Erreur lors du chargement de la flèche:', err);
-  }
-
-  
- 
-
   // ---------------------- MINI-JEU / GUI / LOGIQUE -------------------
-  const launchGame = async () => {
+  const launchGame = () => {
+    // On peut garder le debugLayer si tu veux
+    scene.debugLayer.show({
+      embedMode: true,
+      overlay: true,
+      globalRoot: document.body,
+    });
+
+    let score = 0;
+    const duration = 20;
+    const objectif = 10;
+    //const objectif = Math.floor(Math.random() * (100 - 50)) + 50;
     const playerState = { mesh: charMesh, lane: 0, alive: true };
 
     const gui = AdvancedDynamicTexture.CreateFullscreenUI('uiClicker', true, scene);
+    
+    const scalingTarget =  objectif * 0.001;
+
+    const lianeBasePos =  new Vector3(7, -2, 0);
+    
+    const lianeObjectiveY = lianeBasePos.y + scalingTarget
+    
+    // Charger la flèche 3D à cette position :
+    SceneLoader.ImportMeshAsync(
+      "",
+      "/assets/",
+      "arrow.glb",
+      scene
+    ).then((result) => {
+      const arrowMeshes = result.meshes.filter(m => m.getTotalVertices() > 0);
+      if (!arrowMeshes.length) return;
+    
+      arrowMeshes.forEach(mesh => {
+        mesh.position.x = lianeBasePos.x - 1.2;
+        mesh.position.y = lianeObjectiveY;
+        mesh.position.z = lianeBasePos.z;
+    
+        // Optionnel : oriente la flèche (ex: horizontale, pointe à droite)
+        mesh.rotation = new Vector3(0, 0, Math.PI / 2);
+    
+        // Taille (adapte à ton modèle)
+        mesh.scaling = new Vector3(0.5, 0.5, 0.5);
+      });
+    });
 
     // Score Box
     const scoreUI = AdvancedDynamicTexture.CreateFullscreenUI('scoreUI', true, scene);
@@ -202,7 +217,6 @@ export async function initClickerGame(
     timerPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
     timerPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
     timerPanel.top = '10px';
-    timerPanel.left = '-10px';
     gui.addControl(timerPanel);
     timerText.fontSize = 24;
     timerText.color = 'white';
@@ -238,7 +252,7 @@ export async function initClickerGame(
     clickBtn.onPointerUpObservable.add(() => {
       if (gameEnded) return;
       updateScore();
-      playerState.mesh.position.y += 0.12;
+      playerState.mesh.position.y += 0.114;
       if (pivotNode) {
         pivotNode.scaling.y += 0.001;
       }
@@ -260,8 +274,8 @@ export async function initClickerGame(
       scoreUI.dispose();
 
       const panel = new Rectangle('panel');
-      panel.width = '30%';
-      panel.height = '180px';
+      panel.width = '60%';
+      panel.height = '200px';
       panel.cornerRadius = 20;
       panel.background = '#dfe8ed';
       panel.color = '#34acec';
@@ -273,7 +287,7 @@ export async function initClickerGame(
       const txt = new TextBlock('txt');
       txt.text = win
         ? `Bravo ! Tu as gagné !\nScore : ${score} / ${objectif}`
-        : `Partie terminée ! Tu as perdu ! \nScore : ${score} / ${objectif}`;
+        : `Partie terminée !\nScore : ${score} / ${objectif}`;
       txt.textWrapping = true;
       txt.fontFamily = 'Bangers, cursive';
       txt.fontSize = 26;

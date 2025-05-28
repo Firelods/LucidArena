@@ -8,6 +8,7 @@ import { SceneManager } from '../engine/SceneManager';
 import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
+import { initClickerGame } from './ClickerGame';
 
 export type GameSceneHandle = {
   /** Lance le dé et déplace le joueur courant */
@@ -43,6 +44,11 @@ const GameScene = forwardRef<GameSceneHandle>((_, ref) => {
     sceneMgr.createScene('mini1', (scene) => {
       importSkyBox(scene);
       initMiniGame1(scene, canvasRef.current!, sceneMgr);
+    });
+    // Scène ClickerGame
+    sceneMgr.createScene('ClickerGame', (scene) => {
+      importSkyBox(scene);
+      initClickerGame(scene, 0, sceneMgr, false);
     });
 
     // Démarrage de la boucle et affichage de la scène principale
