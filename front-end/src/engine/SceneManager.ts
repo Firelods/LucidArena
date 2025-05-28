@@ -33,7 +33,7 @@ export class SceneManager {
     if (this.activeName) {
       const prev = this.scenes[this.activeName];
       if (prev.activeCamera) {
-        prev.activeCamera.detachControl(canvas);
+        // prev.activeCamera.detachControl(canvas);
       }
     }
 
@@ -42,9 +42,6 @@ export class SceneManager {
 
     // Attache la nouvelle caméra
     const next = this.scenes[name];
-    if (next.activeCamera) {
-      // next.activeCamera.attachControl(canvas, true); // prend les inputs clavier/souris :contentReference[oaicite:0]{index=0}
-    }
   }
 
   /**
