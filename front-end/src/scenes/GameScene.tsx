@@ -14,6 +14,7 @@ import { SceneManager } from '../engine/SceneManager';
 import { initMiniGame1 } from './MiniGame1';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
+import { initClickerGame } from './ClickerGame';
 import { initIntroScene } from './IntroScene';
 import { useGameSocket } from '../hooks/useGameSocket';
 import { useParams } from 'react-router-dom';
@@ -95,6 +96,11 @@ const GameScene = () => {
     sceneMgr.createScene('mini1', (scene: Scene) => {
       importSkyBox(scene);
       initMiniGame1(scene, canvasRef.current!, sceneMgr, playerIdx);
+    });
+    // Scène ClickerGame
+    sceneMgr.createScene('ClickerGame', (scene) => {
+      importSkyBox(scene);
+      initClickerGame(scene, 0, sceneMgr, false);
     });
 
     // Bascule vers la scène principale
