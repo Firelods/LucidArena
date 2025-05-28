@@ -9,7 +9,7 @@ const GoogleLoginButton = () => {
     }
     const { setUser } = authContext;
 
-    const handleSuccess = async (credentialResponse) => {
+    const handleSuccess = async (credentialResponse:any) => {
         const { credential } = credentialResponse;
         // Envoyer le token au backend pour vérification
         const response = await fetch('http://localhost:8080/api/auth/google', {

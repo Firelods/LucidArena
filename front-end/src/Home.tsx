@@ -32,11 +32,13 @@ export default function Home() {
             body: JSON.stringify({ nickname: nicknameInput }),
         });
         if (res.ok) {
-            setUser({
-                ...user,
-                nickname: nicknameInput,
-                email: user?.email || '',
-            });
+            if (setUser) {
+                setUser({
+                    ...user,
+                    nickname: nicknameInput,
+                    email: user?.email || '',
+                });
+            }
             setName(nicknameInput);
         }
     };
@@ -49,7 +51,7 @@ export default function Home() {
 
     const handleJoin = async () => {
         if (!room) return;
-        const ok = await joinRoom(room, name);
+        const ok = await joinRoom(room,);
         if (ok) navigate(`/lobby/${room}`, { state: { name } });
         else alert('Room inexistante ou pleine.');
     };
