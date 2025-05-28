@@ -15,6 +15,7 @@ import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initRainingGame } from './RainingGame';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
+import { initClickerGame } from './ClickerGame';
 import { initMiniGame1 } from './MiniGame1';
 import { initIntroScene } from './IntroScene';
 import { useGameSocket } from '../hooks/useGameSocket';
@@ -97,6 +98,11 @@ const GameScene = () => {
     sceneMgr.createScene('mini1', (scene: Scene) => {
       importSkyBox(scene);
       initMiniGame1(scene, canvasRef.current!, sceneMgr, playerIdx);
+    });
+    // Scène ClickerGame
+    sceneMgr.createScene('ClickerGame', (scene) => {
+      importSkyBox(scene);
+      initClickerGame(scene, 0, sceneMgr, false);
     });
 
     // Scène RainingGame
