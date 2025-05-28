@@ -4,10 +4,6 @@ services:
     container_name: backend
     ports:
       - "8081:8000"
-    environment:
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
     restart: always
   frontend:
       image: emmaallain06/frontend:latest
