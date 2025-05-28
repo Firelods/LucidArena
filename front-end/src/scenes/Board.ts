@@ -48,7 +48,7 @@ export async function initBoard(
 
   // 2) Lumière
   new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
-
+  Inspector.Show(scene, { embedMode: true });
   // —————————————
   // Début de la Board Scene
   // —————————————

@@ -2,6 +2,7 @@ package fr.gamesonweb.lucid_arena_backend.controller;
 
 import fr.gamesonweb.lucid_arena_backend.dto.GameStateDTO;
 import fr.gamesonweb.lucid_arena_backend.dto.ListPlayerJoinDTO;
+import fr.gamesonweb.lucid_arena_backend.dto.MiniGameInstructionDTO;
 import fr.gamesonweb.lucid_arena_backend.dto.PlayerJoinDTO;
 import fr.gamesonweb.lucid_arena_backend.entity.GameState;
 import fr.gamesonweb.lucid_arena_backend.repository.PlayerProfileRepository;
@@ -63,7 +64,8 @@ public class LobbyController {
 
     @MessageMapping("/lobby/join/{roomId}")
     @SendTo("/topic/lobby/{roomId}")
-    public ListPlayerJoinDTO joinLobby(PlayerJoinDTO message, @DestinationVariable String roomId, MessageHeaders headers) {
+    public ListPlayerJoinDTO joinLobby(PlayerJoinDTO message, @DestinationVariable String roomId,
+            MessageHeaders headers) {
         Map<String, Object> sessionAttributes = (Map<String, Object>) headers.get("simpSessionAttributes");
         String user = (String) sessionAttributes.get("user");
         log.info("User: " + user + " joined room " + roomId);
@@ -109,12 +111,39 @@ public class LobbyController {
         state.getPositions()[currentPlayerIndex] += dice;
 
         // 5. Met à jour le joueur actuel
-        state.setCurrentPlayer(state.getCurrentPlayer() + 1);
-        if (state.getCurrentPlayer() == state.getPlayers().size()) {
-            state.setCurrentPlayer(0); // Recommence au premier joueur
+        //
+
+        int position = state.getPositions()[currentPlayerIndex];
+        String tileType = state.getBoardTypes().get(position);
+        String miniGame = "";
+        switch (tileType) {
+            case "multi" -> miniGame = random.nextInt(2) == 0 ? "mini1" : "StarGame";
+            // case "solo" -> miniGame = random.nextInt(2) == 0 ? "ClickerGame" :
+            // "rainingGame";
+            case "solo" -> miniGame = random.nextInt(2) == 0 ? "mini1" : "mini1";
+            case "bonus" -> state.getScores()[currentPlayerIndex] += 1;
+            case "malus" -> state.getScores()[currentPlayerIndex] -= 1;
+            default -> throw new IllegalStateException("Unknown tile type: " + tileType);
         }
+
+        if (miniGame.isEmpty()) {
+            state.setCurrentPlayer(state.getCurrentPlayer() + 1);
+            if (state.getCurrentPlayer() == state.getPlayers().size()) {
+                state.setCurrentPlayer(0); // Recommence au premier joueur
+            }
+        }
+
+        lobbyService.setGameState(lobbyId, state);
         // 6. Broadcast à tous dans la room
         messagingTemplate.convertAndSend("/topic/game/" + lobbyId, state);
+
+        if (!miniGame.isEmpty()) {
+            MiniGameInstructionDTO instr = new MiniGameInstructionDTO(
+                    // tileType.equals("multi") ? null : nickname, miniGame
+                    tileType.equals("multi") ? null : null, miniGame);
+            messagingTemplate.convertAndSend(
+                    "/topic/game/" + lobbyId + "/minigame/instruction",
+                    instr);
+        }
     }
 }
-

@@ -43,7 +43,10 @@ export class BoardModule {
         pos: m.position.clone(),
       }))
       .sort((a, b) => a.idx - b.idx);
+
+    console.log(tiles);
     boardTiles.splice(0, boardTiles.length, ...tiles.map((t) => t.pos));
+    console.log(boardTiles);
 
     const matTileBase = new StandardMaterial('matTileBase', this.scene);
     matTileBase.diffuseColor = Color3.FromHexString('#F3A07F');
@@ -60,7 +63,8 @@ export class BoardModule {
     const matSolo = new StandardMaterial('matSolo', this.scene);
     const matBonus = new StandardMaterial('matBonus', this.scene);
     const matMalus = new StandardMaterial('matMalus', this.scene);
-
+    const matError = new StandardMaterial('matError', this.scene);
+    matError.diffuseColor = Color3.FromHexString('#FF0000'); // rouge pour les erreurs
     matMulti.diffuseColor = Color3.FromHexString('#FA52E1');
     matSolo.diffuseColor = Color3.FromHexString('#EE99E3');
     matBonus.diffuseColor = Color3.FromHexString('#81E5EC');
@@ -77,14 +81,14 @@ export class BoardModule {
       throw new Error('Board types are not defined in the game state');
     }
     tiles.forEach(({ idx, mesh: tileMesh }) => {
-      const tileType = types[idx]; // "multi" | "solo" | "bonus" | "malus"
+      const tileType = types[idx - 1]; // "multi" | "solo" | "bonus" | "malus"
       const mat =
         {
           multi: matMulti,
           solo: matSolo,
           bonus: matBonus,
           malus: matMalus,
-        }[tileType] ?? matSolo; // fallback to matSolo if undefined
+        }[tileType] ?? matError; // fallback to matSolo if undefined
       tileMesh
         .getChildren()
         .filter((c) => c.name.startsWith('Cube'))
