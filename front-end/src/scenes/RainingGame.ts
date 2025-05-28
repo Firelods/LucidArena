@@ -307,7 +307,6 @@ export function initRainingGame(
         okBtn.color = 'white';
         okBtn.onPointerUpObservable.add(() => {
           endUI.dispose();
-          resolve(score);
           scene.dispose(); // Nettoyage de la scène
           SceneManager.switchTo('main'); // Retour à la scène principale
         });
