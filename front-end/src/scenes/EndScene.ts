@@ -28,25 +28,6 @@ export async function initEndGaming(
   canvas.addEventListener('click', () => canvas.focus());
   canvas.focus();
 
-  // Charger le modèle 3D
-  const character = await SceneLoader.ImportMeshAsync(
-    '',
-    '/assets/',
-    playerFiles[winner ?? 0],
-    scene,
-  );
-  Inspector.Show(scene, {});
-
-  const model = character.meshes[0] as Mesh;
-  model.scaling.set(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
-
-  // Calcul du centre du maillage pour un placement précis
-  model.computeWorldMatrix(true);
-  const { min, max } = model.getHierarchyBoundingVectors(true);
-  const center = Vector3.Center(min, max);
-  // Positionner et monter le modèle pour que son centre soit à (0, Y_OFFSET, 0)
-  model.position = center.negate().add(new Vector3(0, Y_OFFSET, 0));
-
   // Configuration de la caméra ArcRotate centrée sur le modèle élevé avec angle de plongée
   let camera = scene.activeCamera as ArcRotateCamera;
   if (!camera) {
@@ -71,7 +52,7 @@ export async function initEndGaming(
   const cameraAnimation = new Animation(
     'cameraRotation',
     'alpha',
-    20,
+    15,
     Animation.ANIMATIONTYPE_FLOAT,
     Animation.ANIMATIONLOOPMODE_CYCLE,
   );
@@ -84,4 +65,46 @@ export async function initEndGaming(
 
   // Focus final sur le nouveau centre haut
   camera.setTarget(new Vector3(0, Y_OFFSET, 0));
+
+  // Charger le modèle 3D
+  const character = await SceneLoader.ImportMeshAsync(
+    '',
+    '/assets/',
+    playerFiles[winner ?? 0],
+    scene,
+  );
+  Inspector.Show(scene, {});
+
+  const model = character.meshes[0] as Mesh;
+  model.scaling.set(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
+
+  // Calcul du centre du maillage pour un placement précis
+  model.computeWorldMatrix(true);
+  const { min, max } = model.getHierarchyBoundingVectors(true);
+  const center = Vector3.Center(min, max);
+  // Positionner et monter le modèle pour que son centre soit à (0, Y_OFFSET, 0)
+  model.position = center.negate().add(new Vector3(0, Y_OFFSET, 0));
+
+  // Charger la couronne depuis le dossier assets
+  const crownResult = await SceneLoader.ImportMeshAsync(
+    '', // aucun mesh inclus
+    '/assets/',
+    'crown.glb', // nom du fichier de la couronne
+    scene,
+  );
+  const crownMesh = crownResult.meshes[0] as Mesh;
+  crownMesh.name = 'Crown';
+
+  // Recalculer la bounding box du personnage pour obtenir la hauteur de la tête
+  model.computeWorldMatrix(true);
+  const { min: minB, max: maxB } = model.getHierarchyBoundingVectors(true);
+  const headWorldY = maxB.y;
+  const offsetAuDessus = 0.2;
+
+  // Positionner et parenter la couronne au personnage
+  crownMesh.position = new Vector3(25.1, -3, 6);
+  crownMesh.scaling.set(4, 4, 4);
+
+  crownMesh.checkCollisions = false;
+  crownMesh.receiveShadows = false;
 }
