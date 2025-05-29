@@ -221,7 +221,7 @@ public class LobbyService {
         GameState state = getGameState(lobbyId);
         if (state != null) {
             for (int i = 0; i < state.getScores().length; i++) {
-                if (state.getScores()[i] >= 1) { // Assuming 5 is the winning score
+                if (state.getScores()[i] >= 5) { // Assuming 5 is the winning score
                     return state.getPlayers().get(i);
                 }
             }

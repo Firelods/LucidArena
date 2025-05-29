@@ -387,7 +387,7 @@ export async function initBoard(
   await showPopups([
     'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
     'À tour de rôle, affrontez-vous sur le plateau.',
-    'Le premier à 10 étoiles remporte la partie !',
+    'Le premier à 5 étoiles remporte la partie !',
     'Bonne chance !',
   ]);
 }
