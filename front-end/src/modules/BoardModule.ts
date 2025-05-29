@@ -4,10 +4,15 @@ import {
   Animation,
   Tools,
   TransformNode,
+  Mesh,
+  StandardMaterial,
+  Color3,
 } from '@babylonjs/core';
 import { AppendSceneAsync } from '@babylonjs/core/Loading/sceneLoader';
 import { boardTiles } from '../utils/board';
 import '@babylonjs/loaders/glTF/2.0';
+import { playerFiles } from '../utils/utils';
+import { GameStateDTO } from '../dto/GameStateDTO';
 
 export class BoardModule {
   private scene: Scene;
@@ -23,7 +28,7 @@ export class BoardModule {
    * Initialise le plateau et les pions.
    * @param playerCount nombre de joueurs (défaut : 4)
    */
-  async init(playerCount: number, characterPaths: string[]) {
+  async init(playerCount: number, gameState: GameStateDTO) {
     // 1. Charger le plateau
     await AppendSceneAsync('/assets/board.glb', this.scene);
     const boardRoot = this.scene.getMeshByName('__root__')!;
@@ -34,16 +39,68 @@ export class BoardModule {
       .filter((m) => m.name.startsWith('Tile_'))
       .map((m) => ({
         idx: +m.name.split('_')[1],
+        mesh: m as Mesh,
         pos: m.position.clone(),
       }))
-      .sort((a, b) => a.idx - b.idx)
-      .map((t) => t.pos);
-    boardTiles.splice(0, boardTiles.length, ...tiles);
+      .sort((a, b) => a.idx - b.idx);
+
+    console.log(tiles);
+    boardTiles.splice(0, boardTiles.length, ...tiles.map((t) => t.pos));
+    console.log(boardTiles);
+
+    const matTileBase = new StandardMaterial('matTileBase', this.scene);
+    matTileBase.diffuseColor = Color3.FromHexString('#F3A07F');
+    // suppression de toute brillance
+    matTileBase.specularColor = new Color3(0, 0, 0);
+    matTileBase.specularPower = 0;
+
+    // Applique ce matériau à chaque mesh de tuile
+    for (const { mesh: tileMesh } of tiles) {
+      tileMesh.material = matTileBase;
+    }
+
+    const matMulti = new StandardMaterial('matMulti', this.scene);
+    const matSolo = new StandardMaterial('matSolo', this.scene);
+    const matBonus = new StandardMaterial('matBonus', this.scene);
+    const matMalus = new StandardMaterial('matMalus', this.scene);
+    const matError = new StandardMaterial('matError', this.scene);
+    matError.diffuseColor = Color3.FromHexString('#FF0000'); // rouge pour les erreurs
+    matMulti.diffuseColor = Color3.FromHexString('#FA52E1');
+    matSolo.diffuseColor = Color3.FromHexString('#EE99E3');
+    matBonus.diffuseColor = Color3.FromHexString('#81E5EC');
+    matMalus.diffuseColor = Color3.FromHexString('#EBC042');
+
+    // suppression de toute brillance sur les cubes
+    [matMulti, matSolo, matBonus, matMalus].forEach((mat) => {
+      mat.specularColor = new Color3(0, 0, 0);
+      mat.specularPower = 0;
+    });
+
+    const types = gameState.boardTypes; // ex. ["multi", "solo", …]
+    if (!types) {
+      throw new Error('Board types are not defined in the game state');
+    }
+    tiles.forEach(({ idx, mesh: tileMesh }) => {
+      const tileType = types[idx - 1]; // "multi" | "solo" | "bonus" | "malus"
+      const mat =
+        {
+          multi: matMulti,
+          solo: matSolo,
+          bonus: matBonus,
+          malus: matMalus,
+        }[tileType] ?? matError; // fallback to matSolo if undefined
+      tileMesh
+        .getChildren()
+        .filter((c) => c.name.startsWith('Cube'))
+        .forEach((cube) => ((cube as Mesh).material = mat));
+      // on peut stocker en metadata si besoin :
+      tileMesh.metadata = { type: tileType };
+    });
 
     // 3. Charger chaque personnage distinct
     for (let i = 0; i < playerCount; i++) {
       // charge le i-ème glb
-      await AppendSceneAsync(characterPaths[i], this.scene);
+      await AppendSceneAsync(`/assets/${playerFiles[i]}`, this.scene);
       // récupère la racine importée
       const root = this.scene.getMeshByName('__root__') as TransformNode;
       root.name = `characterRoot_${i}`;

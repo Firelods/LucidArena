@@ -48,7 +48,7 @@ export async function initBoard(
 
   // 2) Lumière
   new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
-
+  // Inspector.Show(scene, { embedMode: true });
   // —————————————
   // Début de la Board Scene
   // —————————————
@@ -56,12 +56,11 @@ export async function initBoard(
   // 3) Modules Plateau et Dé
   boardMod.current = new BoardModule(scene);
   diceMod.current = new DiceModule(scene, camera);
-  await boardMod.current.init(playerCount, [
-    '/assets/character.glb',
-    '/assets/character_pink.glb',
-    '/assets/character_blue.glb',
-    '/assets/character_green.glb',
-  ]);
+  const initialGameState = getGameState();
+  if (!initialGameState) {
+    throw new Error('Game state is not available during board initialization');
+  }
+  await boardMod.current.init(playerCount, initialGameState);
   await diceMod.current.init();
   await diceMod.current.hide();
 
@@ -245,28 +244,28 @@ export async function initBoard(
     // --- 3. Montre/cache le bouton dé ---
     rollBtn.isVisible = isMyTurn;
 
-    // --- 4. Animations de déplacement pas à pas ---
-    if (!lastPositions.length) {
-      // initialisation de lastPositions la première fois
-      lastPositions = [...state.positions];
-      console.log(`Positions initiales: ${lastPositions}`);
-      await boardMod.current.setPositions(state.positions);
-    } else {
-      for (let i = 0; i < state.positions.length; i++) {
-        const oldIdx = lastPositions[i];
-        const newIdx = state.positions[i];
-        const steps = newIdx - oldIdx;
-        if (steps > 0) {
-          // fait sauter le pion 'steps' fois
-          console.log(
-            `Déplacement joueur ${i} de ${oldIdx} à ${newIdx} (${steps} pas)`,
-          );
-          lastPositions[i] = newIdx;
-          await boardMod.current.movePlayer(i, steps);
-        }
-      }
-      lastPositions = [...state.positions];
-    }
+    // // --- 4. Animations de déplacement pas à pas ---
+    // if (!lastPositions.length) {
+    //   // initialisation de lastPositions la première fois
+    //   lastPositions = [...state.positions];
+    //   console.log(`Positions initiales: ${lastPositions}`);
+    //   await boardMod.current.setPositions(state.positions);
+    // } else {
+    //   for (let i = 0; i < state.positions.length; i++) {
+    //     const oldIdx = lastPositions[i];
+    //     const newIdx = state.positions[i];
+    //     const steps = newIdx - oldIdx;
+    //     if (steps > 0) {
+    //       // fait sauter le pion 'steps' fois
+    //       console.log(
+    //         `Déplacement joueur ${i} de ${oldIdx} à ${newIdx} (${steps} pas)`,
+    //       );
+    //       lastPositions[i] = newIdx;
+    //       await boardMod.current.movePlayer(i, steps);
+    //     }
+    //   }
+    //   lastPositions = [...state.positions];
+    // }
     // --- 5. Animation du dé si valeur a changé ---
     if (state.lastDiceRoll && state.lastDiceRoll !== lastDice) {
       console.log(`Lancer de dé: ${state.lastDiceRoll}`);
