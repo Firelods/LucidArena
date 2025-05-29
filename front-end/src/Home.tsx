@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import GoogleLoginButton from './components/GoogleLoginButton';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { createRoom, joinRoom } from './services/lobbyService';
+import { API_BASE } from './services/constants';
 
 export default function Home() {
     const auth = useAuth();
@@ -23,7 +24,7 @@ export default function Home() {
 
     const handleSaveNickname = async () => {
         const token = localStorage.getItem('jwt');
-        const res = await fetch('http://localhost:8080/api/user/nickname', {
+        const res = await fetch(`${API_BASE}/user/nickname`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

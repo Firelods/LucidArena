@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import { GameStateDTO } from '../dto/GameStateDTO';
+import { WS_BASE } from '../services/constants';
 
 export function useGameSocket(roomId: string) {
   const [gameState, setGameState] = useState<GameStateDTO | null>(null);
@@ -15,7 +16,7 @@ export function useGameSocket(roomId: string) {
     console.log(`Connecting to game room ${roomId} with token ${token}`);
 
     const stomp = new Client({
-      brokerURL: `ws://localhost:8080/ws?access_token=${token}`,
+      brokerURL: `${WS_BASE}?access_token=${token}`,
       reconnectDelay: 5000,
       onConnect: () => {
         stomp.subscribe(`/topic/game/${roomId}`, (message) => {

@@ -13,7 +13,12 @@ RUN npm install
 # Copie le reste des fichiers de l'application
 COPY . .
 
+# Variables d'environnement pour la configuration de l'application
+ARG VITE_API_BASE
+ARG VITE_WS_BASE
 ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_WS_BASE=$VITE_WS_BASE
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 # Build de l'application React
