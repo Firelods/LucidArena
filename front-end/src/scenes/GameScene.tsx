@@ -11,9 +11,12 @@ import { DiceModule } from '../modules/DiceModule';
 import { Scene, CubeTexture } from '@babylonjs/core';
 
 import { SceneManager } from '../engine/SceneManager';
-import { initMiniGame1 } from './MiniGame1';
+import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
+import { initRainingGame } from './RainingGame';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
+import { initClickerGame } from './ClickerGame';
+import { initMiniGame1 } from './MiniGame1';
 import { initIntroScene } from './IntroScene';
 import { useGameSocket } from '../hooks/useGameSocket';
 import { useParams } from 'react-router-dom';
@@ -96,7 +99,25 @@ const GameScene = () => {
       importSkyBox(scene);
       initMiniGame1(scene, canvasRef.current!, sceneMgr, playerIdx);
     });
+    // Scène ClickerGame
+    sceneMgr.createScene('ClickerGame', (scene) => {
+      importSkyBox(scene);
+      initClickerGame(scene, 0, sceneMgr, false);
+    });
 
+    // Scène RainingGame
+    sceneMgr.createScene('rainingGame', (scene) => {
+      importSkyBox(scene);
+      initRainingGame(
+        scene,
+        Math.floor(Math.random() * (15 - 8)) + 8,
+        0,
+        sceneMgr,
+      );
+    });
+
+    // Démarrage de la boucle et affichage de la scène principale
+    sceneMgr.run();
     // Bascule vers la scène principale
     sceneMgr.switchTo('main');
   }, [gameState]);
