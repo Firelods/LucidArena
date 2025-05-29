@@ -161,7 +161,7 @@ export async function initEndGaming(
 
   // Au clic, retour au menu principal
   exitCloud.onPointerUpObservable.add(() => {
-    sceneManager.switchTo('main');
+    window.location.href = '/';
   });
 
   guiTexture.addControl(exitCloud);

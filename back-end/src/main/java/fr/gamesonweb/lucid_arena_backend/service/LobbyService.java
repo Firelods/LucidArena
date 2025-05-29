@@ -137,28 +137,11 @@ public class LobbyService {
             return null; // No results for this mini game
         }
         // if miniGame is a soloGame ("ClickerGame" or "rainingGame"), we only need one player
-        if (miniGameName.equals("ClickerGame") || miniGameName.equals("rainingGame")) {
-            // Get the only player who submitted a result
-            Map.Entry<String, Integer> entry = miniGameResult.getPlayerScores().entrySet().iterator().next();
-            String playerNickname = entry.getKey();
-            log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
-            // add 1 to the score of the player in the gameState
-            GameState gameState = getGameState(lobbyId);
-            int playerIndex = gameState.getPlayers().stream()
-                    .map(PlayerProfile::getNickname)
-                    .toList()
-                    .indexOf(playerNickname);
-            if (playerIndex != -1) {
-                int currentScore = gameState.getScores()[playerIndex];
-                gameState.getScores()[playerIndex] = currentScore + 1;
-                this.setGameState(lobbyId, gameState);
-            } else {
-                log.warning("Player " + playerNickname + " not found in game state for lobby " + lobbyId);
-            }
-
-            resetMinigameResult(lobbyId, miniGameName);
-
-            return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
+        if (miniGameName.equals("ClickerGame") ) {
+            return updateScoreMiniGameSolo(lobbyId, miniGameName, miniGameResult, 66);
+        }
+        if (miniGameName.equals("rainingGame")) {
+            return updateScoreMiniGameSolo(lobbyId, miniGameName, miniGameResult, 10);
         }
 
         // Find the player with the highest score
@@ -172,7 +155,17 @@ public class LobbyService {
             }
         }
 
+
         GameState state = getGameState(lobbyId);
+        String finalWinnerNickname = winnerNickname;
+        state.getPlayers().stream()
+                .filter(player -> player.getNickname().equals(finalWinnerNickname))
+                .findFirst()
+                .ifPresent(player -> {
+                    int playerIndex = state.getPlayers().indexOf(player);
+                    state.getScores()[playerIndex] += 1; // Increment the score of the winning player
+                });
+
         state.setCurrentPlayer(state.getCurrentPlayer() + 1);
         if (state.getCurrentPlayer() == state.getPlayers().size()) {
             state.setCurrentPlayer(0); // Recommence au premier joueur
@@ -187,6 +180,43 @@ public class LobbyService {
 
     }
 
+
+    public GameController.MiniGameOutcomeDTO updateScoreMiniGameSolo(
+            String lobbyId,
+            String miniGameName,
+            MiniGameResult miniGameResult,
+            int neededScore) {
+        // Get the only player who submitted a result
+        Map.Entry<String, Integer> entry = miniGameResult.getPlayerScores().entrySet().iterator().next();
+        String playerNickname = entry.getKey();
+        //.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
+        // add 1 to the score of the player in the gameState
+        GameState gameState = getGameState(lobbyId);
+        int playerIndex = gameState.getPlayers().stream()
+                .map(PlayerProfile::getNickname)
+                .toList()
+                .indexOf(playerNickname);
+        if (playerIndex != -1) {
+            if( entry.getValue() < neededScore ) {
+                log.warning("Player " + playerNickname + " did not reach the needed score of " + neededScore);
+                return new GameController.MiniGameOutcomeDTO(miniGameName,entry.getKey(), entry.getValue()); // Player did not reach the needed score
+            }
+            int currentScore = gameState.getScores()[playerIndex];
+            gameState.getScores()[playerIndex] = currentScore + 1;
+            this.setGameState(lobbyId, gameState);
+            log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
+            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
+
+            return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
+        } else {
+            log.warning("Player " + playerNickname + " not found in game state for lobby " + lobbyId);
+        }
+
+        resetMinigameResult(lobbyId, miniGameName);
+
+        return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
+    }
+
     public PlayerProfile checkIfEndGame() {
         for (GameState state : gameStates.values()) {
             for (int i = 0; i < state.getScores().length; i++) {
@@ -195,7 +225,7 @@ public class LobbyService {
                 }
             }
         }
-        return null; // No winner found
+        return null;
 
     }
 }

@@ -60,16 +60,6 @@ const GameScene = () => {
       initIntroScene(scene, sceneMgr).then(() => setIntroDone(true));
     });
 
-    sceneMgr.createScene('endScene', (scene) => {
-      importSkyBox(scene);
-      //Recherche l'indice du gagnant
-      const winnerPlayer = gameState?.winner;
-      const winnerNumber = gameState?.players.findIndex(
-        (p) => p.nickname === winnerPlayer,
-      );
-      initEndGaming(scene, sceneMgr, winnerNumber ?? null);
-    });
-
     sceneMgr.run();
     sceneMgr.switchTo('intro');
 
