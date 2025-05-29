@@ -6,6 +6,8 @@ export function useGameSocket(roomId: string) {
   const [gameState, setGameState] = useState<GameStateDTO | null>(null);
 
   const stompRef = useRef<Client | null>(null);
+  const [winnerNumber, setWinnerNumber] = useState<number | null>(null);
+
   useEffect(() => {
     const token = localStorage.getItem('jwt');
     if (!token) {
@@ -22,6 +24,13 @@ export function useGameSocket(roomId: string) {
           const state = JSON.parse(message.body);
           console.log(state);
           setGameState(state);
+        });
+
+        stomp.subscribe(`/topic/game/${roomId}/winner`, (message) => {
+          const winner = JSON.parse(message.body);
+          console.log(`Winner: ${winner}`);
+          setWinnerNumber(winner);
+          // Ici, tu peux gérer l'affichage du gagnant ou rediriger vers une scène de fin
         });
 
         stomp.publish({
@@ -46,7 +55,7 @@ export function useGameSocket(roomId: string) {
       });
     }
   }
-  return { gameState, rollDice };
+  return { gameState, rollDice, winnerNumber };
 }
 
 export function isItMyTurn(

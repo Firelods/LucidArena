@@ -21,6 +21,7 @@ import { useGameSocket } from '../hooks/useGameSocket';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GameStateDTO } from '../dto/GameStateDTO';
+import { initEndGaming } from './EndScene';
 
 const GameScene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,7 +36,7 @@ const GameScene = () => {
   const user = auth?.user;
   const nickname = user?.nickname || '';
   // On récupère l'état du jeu (gameState), l'action pour lancer le dé et si c'est à mon tour
-  const { gameState, rollDice } = useGameSocket(roomId!);
+  const { gameState, rollDice, winnerNumber } = useGameSocket(roomId!);
   const createdScenesRef = useRef(false);
   const [introDone, setIntroDone] = useState(false);
 
@@ -52,8 +53,13 @@ const GameScene = () => {
       initIntroScene(scene, sceneMgr).then(() => setIntroDone(true));
     });
 
+    sceneMgr.createScene('endScene', (scene) => {
+      importSkyBox(scene);
+      initEndGaming(scene, sceneMgr, winnerNumber);
+    });
+
     sceneMgr.run();
-    sceneMgr.switchTo('intro');
+    sceneMgr.switchTo('endScene');
 
     return () => engine.getEngine().dispose();
   }, []);
@@ -108,6 +114,12 @@ const GameScene = () => {
         0,
         sceneMgr,
       );
+    });
+
+    //Scène EndingScene
+    sceneMgr.createScene('endScene', (scene) => {
+      importSkyBox(scene);
+      initEndGaming(scene, sceneMgr, winnerNumber);
     });
 
     // Démarrage de la boucle et affichage de la scène principale

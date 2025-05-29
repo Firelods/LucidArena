@@ -6,20 +6,21 @@ import {
   Animation,
   SceneLoader,
 } from '@babylonjs/core';
+import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
+import { playerFiles } from '../utils/utils';
 
 const Z_PLANE = 5;
-const OBJECT_SCALE = 0.5;
-const CHAR_FILES = [
-  'character_blue.glb',
-  'character_green.glb',
-  'character_pink.glb',
-  'character.glb',
-];
+const OBJECT_SCALE = 1.5;
+// Décalage vertical pour monter légèrement le personnage
+const Y_OFFSET = 2;
+// Angle de plongée souhaité
+const CAMERA_BETA = 1.208;
 
 export async function initEndGaming(
   scene: Scene,
   sceneManager: SceneManager,
+  winner: number | null,
 ): Promise<void> {
   const engine = scene.getEngine();
   const canvas = engine.getRenderingCanvas() as HTMLCanvasElement;
@@ -27,58 +28,60 @@ export async function initEndGaming(
   canvas.addEventListener('click', () => canvas.focus());
   canvas.focus();
 
-  // Caméra
+  // Charger le modèle 3D
+  const character = await SceneLoader.ImportMeshAsync(
+    '',
+    '/assets/',
+    playerFiles[winner ?? 0],
+    scene,
+  );
+  Inspector.Show(scene, {});
+
+  const model = character.meshes[0] as Mesh;
+  model.scaling.set(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
+
+  // Calcul du centre du maillage pour un placement précis
+  model.computeWorldMatrix(true);
+  const { min, max } = model.getHierarchyBoundingVectors(true);
+  const center = Vector3.Center(min, max);
+  // Positionner et monter le modèle pour que son centre soit à (0, Y_OFFSET, 0)
+  model.position = center.negate().add(new Vector3(0, Y_OFFSET, 0));
+
+  // Configuration de la caméra ArcRotate centrée sur le modèle élevé avec angle de plongée
   let camera = scene.activeCamera as ArcRotateCamera;
   if (!camera) {
     camera = new ArcRotateCamera(
-      'Camera',
-      Math.PI / 2,
-      1.3,
+      'AlignedCamera',
+      0, // alpha initial
+      CAMERA_BETA, // beta à 1.208 rad pour un léger plongé
       Z_PLANE * 3,
-      new Vector3(0, 10, 10),
+      new Vector3(0, Y_OFFSET, 0),
       scene,
     );
     camera.lowerRadiusLimit = Z_PLANE * 3;
     camera.upperRadiusLimit = Z_PLANE * 3;
+    scene.activeCamera = camera;
   }
-  scene.activeCamera = camera;
 
-  // Choisir un personnage au hasard
-  const randomChar = CHAR_FILES[Math.floor(Math.random() * CHAR_FILES.length)];
+  camera.alpha = 0;
+  camera.beta = CAMERA_BETA;
+  camera.attachControl(canvas, true);
 
-  // Charger le modèle 3D
-  const character = await SceneLoader.ImportMeshAsync(
-    '',
-    '/assets/', // Remplace ce chemin par le bon chemin vers tes fichiers GLB
-    randomChar,
-    scene,
-  );
-
-  // Positionner le personnage au centre de la scène
-  const model = character.meshes[0] as Mesh;
-  model.position = new Vector3(0, 0, 0);
-  model.scaling = new Vector3(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
-
-  // Créer une animation de la caméra qui tourne autour du personnage
+  // Animation de rotation douce autour du personnage (cycle en 10s)
   const cameraAnimation = new Animation(
-    'cameraAnimation',
+    'cameraRotation',
     'alpha',
-    30, // Nombre de frames par seconde
+    20,
     Animation.ANIMATIONTYPE_FLOAT,
     Animation.ANIMATIONLOOPMODE_CYCLE,
   );
+  cameraAnimation.setKeys([
+    { frame: 0, value: camera.alpha },
+    { frame: 200, value: camera.alpha + Math.PI * 2 },
+  ]);
+  camera.animations = [cameraAnimation];
+  scene.beginAnimation(camera, 0, 200, true);
 
-  // Définir les clés de l'animation pour faire tourner la caméra autour du personnage
-  const keys = [
-    { frame: 0, value: Math.PI / 2 }, // Début de l'animation (position initiale de la caméra)
-    { frame: 100, value: Math.PI * 2 }, // Fin de l'animation (360°)
-  ];
-
-  cameraAnimation.setKeys(keys);
-
-  // Ajouter l'animation à la caméra
-  camera.animations.push(cameraAnimation);
-
-  // Lancer l'animation
-  scene.beginAnimation(camera, 0, 100, true);
+  // Focus final sur le nouveau centre haut
+  camera.setTarget(new Vector3(0, Y_OFFSET, 0));
 }
