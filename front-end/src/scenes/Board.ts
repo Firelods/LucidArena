@@ -67,6 +67,8 @@ export async function initBoard(
   await diceMod.current.hide();
 
   // 4) GUI unique
+  await document.fonts.load('20px "DynaPuff"');
+  await document.fonts.ready;
   const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
 
   // Animation cloud sweep
@@ -184,7 +186,7 @@ export async function initBoard(
     const tb = new TextBlock(`scoreText${i}`, '');
     tb.color = 'white';
     tb.fontSize = fontSize;
-    tb.fontFamily = 'Arial Black';
+    tb.fontFamily = 'DynaPuff';
     tb.textWrapping = true;
     tb.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     tb.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
@@ -195,7 +197,7 @@ export async function initBoard(
   function updateScoreboard(state: GameStateDTO) {
     state.scores.forEach((pts, idx) => {
       const name = state.players[idx]?.nickname ?? `Joueur ${idx + 1}`;
-      scoreTexts[idx].text = `${name}: ${pts} pt${pts > 1 ? 's' : ''}`;
+      scoreTexts[idx].text = `${name}: ${pts} étoile${pts > 1 ? 's' : ''}`;
     });
   }
 
@@ -272,7 +274,6 @@ export async function initBoard(
     { color: '#EBC042', text: 'Malus, perte d’une étoile' },
     { color: '#81E5EC', text: 'Bonus, gain d’une étoile' },
   ];
-  Inspector.Show(scene, {});
 
   legendItems.forEach(({ color, text }) => {
     const row = new StackPanel();
@@ -291,6 +292,7 @@ export async function initBoard(
     row.addControl(swatch);
 
     const lbl = new TextBlock();
+    lbl.fontFamily = 'DynaPuff';
     lbl.text = text;
     lbl.color = 'black';
     lbl.fontSize = 14;
@@ -318,11 +320,12 @@ export async function initBoard(
   // Texte du tour
   const playerTurnText = new TextBlock('turn', '');
   playerTurnText.color = '#333b40';
+  playerTurnText.fontFamily = 'DynaPuff';
   playerTurnText.fontSize = 20;
   playerTurnText.fontWeight = 'bold';
   playerTurnText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  playerTurnText.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
-  playerTurnText.top = '-110px';
+  playerTurnText.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  playerTurnText.top = '-180px';
   gui.addControl(playerTurnText);
 
   // Boucle de rendu
@@ -344,6 +347,7 @@ export async function initBoard(
     playerTurnText.text = `Tour de ${state.players[state.currentPlayer].nickname}${
       isMyTurn ? ' (à vous)' : ''
     }`;
+    playerTurnText.color = isMyTurn ? '#AA5042' : '#333b40';
     rollBtn.isVisible = isMyTurn;
 
     // // --- 4. Animations de déplacement pas à pas ---
