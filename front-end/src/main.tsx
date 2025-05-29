@@ -6,6 +6,8 @@ import Home from './Home.tsx';
 import Lobby from './Lobby.tsx';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext.tsx';
+import './fonts.css';
+
 
 createRoot(document.getElementById('root')!).render(
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
