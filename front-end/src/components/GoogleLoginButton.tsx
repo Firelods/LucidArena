@@ -9,7 +9,7 @@ const GoogleLoginButton = () => {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     const { setUser } = authContext;
-
+    console.log('URL de l\'API:', API_BASE);
     const handleSuccess = async (credentialResponse:any) => {
         const { credential } = credentialResponse;
         // Envoyer le token au backend pour vérification
