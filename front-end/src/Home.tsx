@@ -68,12 +68,12 @@ export default function Home() {
 
     function Loader({ color = "purple" }) {
         const borderColor =
-            color === "green" ? "border-green-500"
-            : color === "purple" ? "border-purple-500"
+            color === "green" ? "border-green-400"
+            : color === "purple" ? "border-purple-400"
             : "border-gray-500";
         return (
             <div className="flex justify-center my-4">
-                <div className={`animate-spin rounded-full h-3 w-3 border-t-4 ${borderColor}`}></div>
+                <div className={`animate-spin rounded-full h-5 w-5 border-t-4 ${borderColor}`}></div>
             </div>
         );
     }
