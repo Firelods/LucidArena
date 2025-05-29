@@ -11,7 +11,6 @@ import { DiceModule } from '../modules/DiceModule';
 import { Scene, CubeTexture } from '@babylonjs/core';
 import Notification from '../components/Notification';
 import { SceneManager } from '../engine/SceneManager';
-import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initRainingGame } from './RainingGame';
 import { initCloudGame } from './CloudGame';
 import { initBoard } from './Board';
@@ -22,7 +21,7 @@ import { useGameSocket } from '../hooks/useGameSocket';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { GameStateDTO } from '../dto/GameStateDTO';
-import { MiniGameInstructionDTO } from '../dto/MiniGameInstructionDTO';
+import { initEndGaming } from './EndScene';
 
 const GameScene = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -125,13 +124,17 @@ const GameScene = () => {
     // Scène RainingGame
     sceneMgr.createScene('rainingGame', (scene) => {
       importSkyBox(scene);
-      initRainingGame(
-        scene,
-        Math.floor(Math.random() * (15 - 8)) + 8,
-        0,
-        sceneMgr,
-        onMiniGameEnd,
+      initRainingGame(scene, 10, 0, sceneMgr, onMiniGameEnd);
+    });
+
+    //Scène EndingScene
+    sceneMgr.createScene('endScene', (scene) => {
+      importSkyBox(scene);
+      // Recherche l'indice du gagnant
+      const playerIdx = gameState.players.findIndex(
+        (p) => p.nickname === nickname,
       );
+      initEndGaming(scene, sceneMgr, playerIdx);
     });
 
     // Démarrage de la boucle et affichage de la scène principale
@@ -193,7 +196,14 @@ const GameScene = () => {
   useEffect(() => {
     if (!gameState) return;
     // On crée un nouveau Promise chainé
+
     animQueueRef.current = (async () => {
+      //On vérifie si le jeu n'est pas terminé
+      if (gameState.winner != null) {
+        // Si le jeu est terminé, on bascule vers la scène de fin
+        sceneMgrRef.current?.switchTo('endScene');
+        return;
+      }
       const prevPos = gameStateRef.current?.positions || [];
       const nextPos = gameState.positions;
       // if (initialLoadRef.current) {

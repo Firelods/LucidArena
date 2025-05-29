@@ -67,8 +67,8 @@ export async function initClickerGame(
 
   let score = 0;
   const duration = 20;
-  const objectif = Math.floor(Math.random() * (100 - 50)) + 50;
-
+  //const objectif = Math.floor(Math.random() * (100 - 50)) + 50;
+  const objectif = 66; // Objectif fixe pour le mini-jeu
   // Sol damier
   const Z_PLANE = 5;
   const gridLength = Z_PLANE * 6;

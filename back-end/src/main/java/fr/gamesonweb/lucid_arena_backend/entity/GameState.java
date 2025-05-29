@@ -12,4 +12,5 @@ public class GameState {
     private int[] scores;
     private String lastDiceRoll;
     private List<String> boardTypes;
+    private String winner;
 }

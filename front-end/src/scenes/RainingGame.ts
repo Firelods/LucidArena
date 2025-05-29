@@ -22,7 +22,6 @@ import {
   Button,
 } from '@babylonjs/gui';
 import '@babylonjs/loaders';
-import { Inspector } from '@babylonjs/inspector';
 import { MiniGameResult } from '../hooks/useGameSocket';
 
 // --- Constants & Assets ---

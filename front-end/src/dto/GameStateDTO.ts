@@ -6,6 +6,7 @@ export interface GameStateDTO {
   scores: number[];
   lastDiceRoll: number;
   boardTypes?: string[];
+  winner?: string | null;
 }
 
 type Player = {

@@ -49,7 +49,6 @@ export function useGameSocket(roomId: string) {
             setMiniGameInstr(instr);
           },
         );
-
         stomp.subscribe(
           `/topic/game/${roomId}/minigame/outcome`,
           ({ body }) => {

@@ -10,14 +10,16 @@ public record GameStateDTO(
         int currentPlayer,
         int[] positions,
         int[] scores,
-        String lastDiceRoll){
+        String lastDiceRoll,
+        String winner){
     public GameStateDTO(GameState gameState){
         this(
                 gameState.getPlayers(),
                 gameState.getCurrentPlayer(),
                 gameState.getPositions(),
                 gameState.getScores(),
-                gameState.getLastDiceRoll()
+                gameState.getLastDiceRoll(),
+                gameState.getWinner()
         );
     }
 }
