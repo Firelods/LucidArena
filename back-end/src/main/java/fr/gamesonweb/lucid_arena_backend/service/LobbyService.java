@@ -203,13 +203,16 @@ public class LobbyService {
             this.setGameState(lobbyId, gameState);
             log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
             messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
-
+            PlayerProfile endWinner=checkIfEndGame(lobbyId);
+            gameState.setWinner(endWinner !=null ? endWinner.getNickname() : null);
+            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
             return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
         } else {
             log.warning("Player " + playerNickname + " not found in game state for lobby " + lobbyId);
         }
 
         resetMinigameResult(lobbyId, miniGameName);
+
 
         return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
     }
@@ -218,15 +221,10 @@ public class LobbyService {
         GameState state = getGameState(lobbyId);
         if (state != null) {
             for (int i = 0; i < state.getScores().length; i++) {
-                if (state.getScores()[i] >= 5) { // Assuming 5 is the winning score
+                if (state.getScores()[i] >= 1) { // Assuming 5 is the winning score
                     return state.getPlayers().get(i);
                 }
             }
-        }
-
-        state.setCurrentPlayer(state.getCurrentPlayer() + 1);
-        if (state.getCurrentPlayer() == state.getPlayers().size()) {
-            state.setCurrentPlayer(0); // Recommence au premier joueur
         }
         this.setGameState(lobbyId, state);
         messaging.convertAndSend("/topic/game/" + lobbyId, state);
