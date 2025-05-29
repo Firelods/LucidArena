@@ -3,9 +3,20 @@ import {
   Scene,
   Vector3,
   Mesh,
+  MeshBuilder,
   Animation,
   SceneLoader,
+  PBRMaterial,
+  Color3,
+  StandardMaterial,
+  Texture,
 } from '@babylonjs/core';
+import {
+  AdvancedDynamicTexture,
+  TextBlock,
+  Control,
+  Image,
+} from '@babylonjs/gui';
 import { Inspector } from '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
 import { playerFiles } from '../utils/utils';
@@ -87,24 +98,37 @@ export async function initEndGaming(
 
   // Charger la couronne depuis le dossier assets
   const crownResult = await SceneLoader.ImportMeshAsync(
-    '', // aucun mesh inclus
+    '',
     '/assets/',
-    'crown.glb', // nom du fichier de la couronne
+    'crown.glb',
     scene,
   );
   const crownMesh = crownResult.meshes[0] as Mesh;
   crownMesh.name = 'Crown';
-
-  // Recalculer la bounding box du personnage pour obtenir la hauteur de la tête
-  model.computeWorldMatrix(true);
-  const { min: minB, max: maxB } = model.getHierarchyBoundingVectors(true);
-  const headWorldY = maxB.y;
-  const offsetAuDessus = 0.2;
-
-  // Positionner et parenter la couronne au personnage
   crownMesh.position = new Vector3(25.1, -3, 6);
   crownMesh.scaling.set(4, 4, 4);
 
-  crownMesh.checkCollisions = false;
-  crownMesh.receiveShadows = false;
+  // Création du matériau PBR jaune doré
+  const crownMat = new PBRMaterial('crownMat', scene);
+  crownMat.albedoColor = Color3.FromHexString('#FFD700');
+  crownMat.roughness = 0.2;
+  crownMat.metallic = 0; // Pour un effet métallique
+
+  // Appliquer le matériau à tous les meshes de la couronne
+  crownResult.meshes
+    .filter((m) => m instanceof Mesh)
+    .forEach((mesh: Mesh) => {
+      mesh.material = crownMat;
+      mesh.checkCollisions = false;
+      mesh.receiveShadows = false;
+    });
+
+  // Overlay GUI pour afficher l'image en bas au centre
+  const guiTexture = AdvancedDynamicTexture.CreateFullscreenUI('UI');
+  const cloudImage = new Image('winnerCloud', '/assets/winnerCloud.png');
+  cloudImage.width = '250px';
+  cloudImage.height = '150px';
+  cloudImage.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  cloudImage.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
+  guiTexture.addControl(cloudImage);
 }
