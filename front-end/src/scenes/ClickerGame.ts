@@ -140,7 +140,6 @@ export async function initClickerGame(
   let pivotNode: TransformNode | null = null;
   let hauteurLiane = 0;
 
-
   try {
     const result = await SceneLoader.ImportMeshAsync(
       '',
@@ -159,7 +158,7 @@ export async function initClickerGame(
         (mesh) => mesh.getBoundingInfo().boundingBox.maximum.y,
       ),
     );
-    
+
     hauteurLiane = maxY - minY;
     lianeMeshes.forEach((mesh) => {
       mesh.position.y -= minY;
@@ -188,7 +187,6 @@ export async function initClickerGame(
       'arrow.glb',
       scene,
     );
-
 
     const arrowMesh = arrowMeshes[0] as AbstractMesh;
     arrowMesh.position = new Vector3(15, 20.5 + 0.114 * objectif, 0);
@@ -391,7 +389,6 @@ export async function initClickerGame(
     infoText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     infoText.top = '-20%';
     panel.addControl(infoText);
-
 
     const startBtn = Button.CreateSimpleButton(
       'btnStart',
