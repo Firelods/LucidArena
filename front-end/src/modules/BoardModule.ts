@@ -118,6 +118,14 @@ export class BoardModule {
     }
     // en cas de plusieurs joueurs sur la meme case, on les décale
     this.updateTileGroup(0);
+    if (gameState.positions) {
+      // si on a des positions initiales, on les applique
+      console.log(
+        `Setting initial positions: ${gameState.positions.join(', ')}`,
+      );
+
+      this.setPositions(gameState.positions);
+    }
   }
 
   private getYRotation(from: Vector3, to: Vector3): number {

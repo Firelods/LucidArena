@@ -9,7 +9,7 @@ import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
 import { Scene, CubeTexture } from '@babylonjs/core';
-
+import Notification from '../components/Notification';
 import { SceneManager } from '../engine/SceneManager';
 import { MeshBuilder, StandardMaterial, Color3 } from '@babylonjs/core';
 import { initRainingGame } from './RainingGame';
@@ -70,11 +70,13 @@ const GameScene = () => {
   // 2) Dès que gameState est non-null, on crée MAIN + mini-jeux & on bascule sur MAIN
   useEffect(() => {
     const sceneMgr = sceneMgrRef.current;
-    console.log('GameState: ', gameStateRef.current);
+    console.log('GameState: ', gameState);
     console.log('sceneMgr: ', sceneMgr);
     console.log(`createdScenesRef: ${createdScenesRef.current}`);
     if (!sceneMgr || !gameState || (createdScenesRef.current && introDone))
       return;
+    console.log(`Creating scenes for gameState: ${JSON.stringify(gameState)}`);
+
     createdScenesRef.current = true;
     const playerIdx = gameState.players.findIndex(
       (p) => p.nickname === nickname,
@@ -165,11 +167,11 @@ const GameScene = () => {
   }, [miniGameInstr]);
 
   useEffect(() => {
+    if (!miniGameOutcome) return;
     console.log(
       `Mini-game outcome received in GameScene: ${JSON.stringify(miniGameOutcome)}`,
     );
 
-    if (!miniGameOutcome) return;
     const {
       miniGameName: mg,
       winnerNickname: w,
@@ -194,13 +196,14 @@ const GameScene = () => {
     animQueueRef.current = (async () => {
       const prevPos = gameStateRef.current?.positions || [];
       const nextPos = gameState.positions;
-      if (!prevPos.length) {
-        // Si c'est la première fois, on initialise les positions
-        console.log(`Positions initiales: ${nextPos.join(', ')}`);
-        await boardMod.current.setPositions(nextPos);
-        gameStateRef.current = gameState; // on met à jour le ref
-        return; // pas besoin de faire d'animation
-      }
+      // if (initialLoadRef.current) {
+      //   // Première itération : on force le positionnement
+      //   console.log(`Initialisation des positions : ${nextPos.join(', ')}`);
+      //   await boardMod.current.setPositions(nextPos);
+      //   initialLoadRef.current = false;
+      //   gameStateRef.current = gameState;
+      //   return;
+      // }
       console.log(
         `Positions précédentes: ${prevPos.join(', ')}, Positions suivantes: ${nextPos.join(', ')}`,
       );
@@ -227,6 +230,18 @@ const GameScene = () => {
           console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
         }
       }
+      let lastScores = gameStateRef.current?.scores || [];
+      let newScores = gameState.scores || [];
+      // regarder si un joueur a gagné un point
+      if (lastScores.length > 0 && newScores.length > 0) {
+        for (let i = 0; i < newScores.length; i++) {
+          if (newScores[i] > lastScores[i]) {
+            // on a un gagnant
+            const player = gameState.players[i];
+            setStatus(`${player.nickname} a gagné un point !`);
+          }
+        }
+      }
 
       // 3) Mémoriser pour la prochaine comparaison
       lastDiceRef.current = newDice;
@@ -239,23 +254,15 @@ const GameScene = () => {
     <>
       <canvas ref={canvasRef} style={{ width: '100%', height: '99%' }} />
 
-      {status && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            padding: '8px 16px',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            borderRadius: '4px',
-            fontSize: '14px',
-          }}
-        >
-          {status}
-        </div>
-      )}
+      <div className="notification-container">
+        {status && (
+          <Notification
+            message={status}
+            duration={8000}
+            onClose={() => setStatus('')}
+          />
+        )}
+      </div>
     </>
   );
 };

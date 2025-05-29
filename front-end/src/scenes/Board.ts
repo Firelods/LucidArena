@@ -272,7 +272,6 @@ export async function initBoard(
     { color: '#EBC042', text: 'Malus, perte d’une étoile' },
     { color: '#81E5EC', text: 'Bonus, gain d’une étoile' },
   ];
-  Inspector.Show(scene, {});
 
   legendItems.forEach(({ color, text }) => {
     const row = new StackPanel();
@@ -369,14 +368,14 @@ export async function initBoard(
     //   lastPositions = [...state.positions];
     // }
     // --- 5. Animation du dé si valeur a changé ---
-    if (state.lastDiceRoll && state.lastDiceRoll !== lastDice) {
-      console.log(`Lancer de dé: ${state.lastDiceRoll}`);
+    // if (state.lastDiceRoll && state.lastDiceRoll !== lastDice) {
+    //   console.log(`Lancer de dé: ${state.lastDiceRoll}`);
 
-      lastDice = state.lastDiceRoll;
-      await diceMod.current.show();
-      await diceMod.current.roll(lastDice);
-      await diceMod.current.hide();
-    }
+    //   lastDice = state.lastDiceRoll;
+    //   await diceMod.current.show();
+    //   await diceMod.current.roll(lastDice);
+    //   await diceMod.current.hide();
+    // }
   });
 
   // Popup de bienvenue

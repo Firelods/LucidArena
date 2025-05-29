@@ -25,7 +25,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("https://lucidarena.tech/")
+                .setAllowedOrigins("https://lucidarena.tech/", "http://localhost:5173")
                 .addInterceptors(authHandshakeInterceptor);
     }
 }
