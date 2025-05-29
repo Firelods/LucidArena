@@ -217,8 +217,9 @@ public class LobbyService {
         return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
     }
 
-    public PlayerProfile checkIfEndGame() {
-        for (GameState state : gameStates.values()) {
+    public PlayerProfile checkIfEndGame(String lobbyId) {
+        GameState state = getGameState(lobbyId);
+        if (state != null) {
             for (int i = 0; i < state.getScores().length; i++) {
                 if (state.getScores()[i] >= 5) { // Assuming 5 is the winning score
                     return state.getPlayers().get(i);
