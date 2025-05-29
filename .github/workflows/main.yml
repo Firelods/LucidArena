@@ -2,7 +2,7 @@ name: Build & Push Front/Back Docker Images
 
 on:
   push:
-    branches: [ main ]  
+    branches: [ main, feat/devops ]  
 
 jobs:
   build-and-push:
