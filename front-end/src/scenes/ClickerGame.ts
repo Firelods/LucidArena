@@ -21,14 +21,23 @@ import {
 
 import '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
+import { MiniGameResult } from '../hooks/useGameSocket';
 
 export async function initClickerGame(
   scene: Scene,
   activePlayer: number,
   sceneManager: SceneManager,
-  canPlay: boolean
+  canPlay: boolean,
+  onMiniGameEnd: (result: MiniGameResult) => void,
 ): Promise<void> {
-
+  function cleanupScene() {
+    // Dispose all meshes, materials, textures
+    scene.meshes.forEach((m) => m.dispose());
+    scene.materials.forEach((mat) => mat.dispose());
+    scene.textures.forEach((tex) => tex.dispose());
+    // Clear render loop callbacks
+    scene.onBeforeRenderObservable.clear();
+  }
   // ---------------------- INIT SCENE -------------------------
   const camera = new ArcRotateCamera(
     'camClicker',
@@ -36,9 +45,10 @@ export async function initClickerGame(
     1.331,
     64.0535,
     new Vector3(10, 15, 0),
-    scene
+    scene,
   );
-  new HemisphericLight('lightClicker', new Vector3(0, 1, 0), scene).intensity = 0.7;
+  new HemisphericLight('lightClicker', new Vector3(0, 1, 0), scene).intensity =
+    0.7;
 
   const characterFiles = [
     'character_blue.glb',
@@ -50,16 +60,15 @@ export async function initClickerGame(
     '',
     '/assets/',
     characterFiles[activePlayer],
-    scene
+    scene,
   );
   const charMesh = charMeshes[0] as AbstractMesh;
   charMesh.position = new Vector3(9.6, 20, 0);
 
   let score = 0;
   const duration = 20;
-  const objectif = Math.floor(Math.random() * (100-50)) + 50; 
-
-
+  //const objectif = Math.floor(Math.random() * (100 - 50)) + 50;
+  const objectif = 66; // Objectif fixe pour le mini-jeu
   // Sol damier
   const Z_PLANE = 5;
   const gridLength = Z_PLANE * 6;
@@ -85,7 +94,7 @@ export async function initClickerGame(
   const ground = MeshBuilder.CreateGround(
     'ground',
     { width: gridWidth, height: gridLength },
-    scene
+    scene,
   );
   ground.material = mat;
   ground.position.x = 10;
@@ -95,11 +104,15 @@ export async function initClickerGame(
   const potHeight = 2;
   const potRadius = 1;
 
-  const pot = MeshBuilder.CreateCylinder('pot', {
-    diameter: potRadius * 4,
-    height: potHeight,
-    tessellation: 24,
-  }, scene);
+  const pot = MeshBuilder.CreateCylinder(
+    'pot',
+    {
+      diameter: potRadius * 4,
+      height: potHeight,
+      tessellation: 24,
+    },
+    scene,
+  );
   pot.position.x = 10;
   pot.position.y = 1;
   pot.position.z = -1;
@@ -108,11 +121,15 @@ export async function initClickerGame(
   pot.material = potMat;
 
   // Rebord du pot
-  const potLip = MeshBuilder.CreateTorus('potLip', {
-    diameter: potRadius * 4,
-    thickness: 0.3,
-    tessellation: 32,
-  }, scene);
+  const potLip = MeshBuilder.CreateTorus(
+    'potLip',
+    {
+      diameter: potRadius * 4,
+      thickness: 0.3,
+      tessellation: 32,
+    },
+    scene,
+  );
   potLip.position.x = 10;
   potLip.position.y = 2;
   potLip.position.z = -1;
@@ -122,18 +139,35 @@ export async function initClickerGame(
   let rotationNode: TransformNode | null = null;
   let pivotNode: TransformNode | null = null;
   let hauteurLiane = 0;
-  
+
   try {
-    const result = await SceneLoader.ImportMeshAsync('', '/assets/', 'liane.glb', scene);
-    const lianeMeshes = result.meshes.filter(m => m.getTotalVertices() > 0);
-    const minY = Math.min(...lianeMeshes.map(mesh => mesh.getBoundingInfo().boundingBox.minimum.y));
-    const maxY = Math.max(...lianeMeshes.map(mesh => mesh.getBoundingInfo().boundingBox.maximum.y));
+    const result = await SceneLoader.ImportMeshAsync(
+      '',
+      '/assets/',
+      'liane.glb',
+      scene,
+    );
+    const lianeMeshes = result.meshes.filter((m) => m.getTotalVertices() > 0);
+    const minY = Math.min(
+      ...lianeMeshes.map(
+        (mesh) => mesh.getBoundingInfo().boundingBox.minimum.y,
+      ),
+    );
+    const maxY = Math.max(
+      ...lianeMeshes.map(
+        (mesh) => mesh.getBoundingInfo().boundingBox.maximum.y,
+      ),
+    );
     hauteurLiane = maxY - minY;
-    lianeMeshes.forEach(mesh => { mesh.position.y -= minY; });
+    lianeMeshes.forEach((mesh) => {
+      mesh.position.y -= minY;
+    });
     pivotNode = new TransformNode('pivotNode', scene);
     pivotNode.position = Vector3.Zero();
     pivotNode.setPivotPoint(new Vector3(0, 0, 0));
-    lianeMeshes.forEach(mesh => { mesh.parent = pivotNode; });
+    lianeMeshes.forEach((mesh) => {
+      mesh.parent = pivotNode;
+    });
     rotationNode = new TransformNode('rotationNode', scene);
     rotationNode.position = new Vector3(7, -2, 0);
     rotationNode.rotation = new Vector3(0, Math.PI / 6, 0);
@@ -149,27 +183,32 @@ export async function initClickerGame(
       '',
       '/assets/',
       'arrow.glb',
-      scene
+      scene,
     );
 
-    const arrowMesh = arrowMeshes[0] as AbstractMesh;   
-    arrowMesh.position = new Vector3(15, 20.5 + 0.114*objectif, 0);
+    const arrowMesh = arrowMeshes[0] as AbstractMesh;
+    arrowMesh.position = new Vector3(15, 20.5 + 0.114 * objectif, 0);
     arrowMesh.scaling = new Vector3(10, 10, 10);
-  } catch (err) { 
+  } catch (err) {
     console.error('Erreur lors du chargement de la flèche:', err);
   }
-
-  
- 
 
   // ---------------------- MINI-JEU / GUI / LOGIQUE -------------------
   const launchGame = async () => {
     const playerState = { mesh: charMesh, lane: 0, alive: true };
 
-    const gui = AdvancedDynamicTexture.CreateFullscreenUI('uiClicker', true, scene);
+    const gui = AdvancedDynamicTexture.CreateFullscreenUI(
+      'uiClicker',
+      true,
+      scene,
+    );
 
     // Score Box
-    const scoreUI = AdvancedDynamicTexture.CreateFullscreenUI('scoreUI', true, scene);
+    const scoreUI = AdvancedDynamicTexture.CreateFullscreenUI(
+      'scoreUI',
+      true,
+      scene,
+    );
     const scorePanel = new Rectangle('scorePanel');
     scorePanel.width = '200px';
     scorePanel.height = '60px';
@@ -183,7 +222,10 @@ export async function initClickerGame(
     scorePanel.top = '10px';
     gui.addControl(scorePanel);
 
-    const scoreText = new TextBlock('scoreText', `Score: ${score} / ${objectif}`);
+    const scoreText = new TextBlock(
+      'scoreText',
+      `Score: ${score} / ${objectif}`,
+    );
     scoreText.fontSize = 24;
     scoreText.color = 'white';
     scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
@@ -191,7 +233,10 @@ export async function initClickerGame(
     scorePanel.addControl(scoreText);
 
     // Timer Box
-    const timerText = new TextBlock('timerText', `Temps: ${(duration / 1000).toFixed(1)}s`);
+    const timerText = new TextBlock(
+      'timerText',
+      `Temps: ${(duration / 1000).toFixed(1)}s`,
+    );
     const timerPanel = new Rectangle('timerPanel');
     timerPanel.width = '200px';
     timerPanel.height = '60px';
@@ -282,7 +327,10 @@ export async function initClickerGame(
       txt.top = '-25%';
       panel.addControl(txt);
 
-      const returnBtn = Button.CreateSimpleButton('btnReturn', 'Retour au plateau');
+      const returnBtn = Button.CreateSimpleButton(
+        'btnReturn',
+        'Retour au plateau',
+      );
       returnBtn.width = '300px';
       returnBtn.height = '60px';
       returnBtn.cornerRadius = 30;
@@ -291,7 +339,8 @@ export async function initClickerGame(
       returnBtn.paddingBottom = '20px';
       panel.addControl(returnBtn);
       returnBtn.onPointerUpObservable.add(() => {
-        gui.dispose();
+        onMiniGameEnd({ name: 'ClickerGame', score: score });
+        cleanupScene();
         sceneManager.switchTo('main');
       });
     };
@@ -310,7 +359,11 @@ export async function initClickerGame(
   };
 
   if (!canPlay) {
-    const waitingGui = AdvancedDynamicTexture.CreateFullscreenUI('waitingUI', true, scene);
+    const waitingGui = AdvancedDynamicTexture.CreateFullscreenUI(
+      'waitingUI',
+      true,
+      scene,
+    );
     const panel = new Rectangle('waitingPanel');
     panel.width = '60%';
     panel.height = '220px';
@@ -324,7 +377,7 @@ export async function initClickerGame(
 
     const infoText = new TextBlock(
       'infoText',
-      "Clique sur “Cliquez !” le plus rapidement pour atteindre l'objectif en moins de 20 secondes."
+      "Clique sur “Cliquez !” le plus rapidement pour atteindre l'objectif en moins de 20 secondes.",
     );
     infoText.fontSize = 24;
     infoText.color = '#333b40';
@@ -333,7 +386,10 @@ export async function initClickerGame(
     infoText.top = '-20%';
     panel.addControl(infoText);
 
-    const startBtn = Button.CreateSimpleButton('btnStart', 'Commencer le mini‑jeu');
+    const startBtn = Button.CreateSimpleButton(
+      'btnStart',
+      'Commencer le mini‑jeu',
+    );
     startBtn.width = '300px';
     startBtn.height = '60px';
     startBtn.cornerRadius = 30;

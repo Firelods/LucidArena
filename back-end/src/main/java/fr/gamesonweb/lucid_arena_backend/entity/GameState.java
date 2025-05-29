@@ -10,6 +10,8 @@ public class GameState {
     private int currentPlayer;
     private int[] positions;
     private int[] scores;
-    private String lastDiceRoll; // Pour stocker le dernier lancer
+    private String lastDiceRoll;
+    private List<String> boardTypes;
+    private String winner;
     // Getters et setters
 }

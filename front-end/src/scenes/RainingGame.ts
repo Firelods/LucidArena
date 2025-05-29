@@ -23,6 +23,7 @@ import {
 } from '@babylonjs/gui';
 import '@babylonjs/loaders';
 import { Inspector } from '@babylonjs/inspector';
+import { MiniGameResult } from '../hooks/useGameSocket';
 
 // --- Constants & Assets ---
 const Z_PLANE = 5;
@@ -58,7 +59,19 @@ export function initRainingGame(
   validScore: number,
   activePlayer: number,
   SceneManager: SceneManager,
+  onMiniGameEnd: (result: MiniGameResult) => void,
 ): Promise<void> {
+  function cleanupScene() {
+    // Dispose all meshes
+    scene.meshes.forEach((m) => m.dispose());
+    // Dispose all materials
+    scene.materials.forEach((mat) => mat.dispose());
+    // Dispose all textures
+    scene.textures.forEach((tex) => tex.dispose());
+    // Clear GUI layers
+    scene.onBeforeRenderObservable.clear();
+    scene.onKeyboardObservable.clear();
+  }
   return new Promise(async (resolve) => {
     const engine = scene.getEngine();
     const canvas = engine.getRenderingCanvas() as HTMLCanvasElement;
@@ -99,7 +112,7 @@ export function initRainingGame(
       }),
     );
 
-    Inspector.Show(scene, { embedMode: true });
+    // Inspector.Show(scene, { embedMode: true });
 
     // Lumière et sol
     new HemisphericLight('hemiLight', new Vector3(10, 2, 3), scene).intensity =
@@ -306,8 +319,8 @@ export function initRainingGame(
         okBtn.background = '#00adb5';
         okBtn.color = 'white';
         okBtn.onPointerUpObservable.add(() => {
-          endUI.dispose();
-          scene.dispose(); // Nettoyage de la scène
+          onMiniGameEnd({ name: 'rainingGame', score: score });
+          cleanupScene();
           SceneManager.switchTo('main'); // Retour à la scène principale
         });
         endPanel.addControl(okBtn);
