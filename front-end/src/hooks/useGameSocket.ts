@@ -6,7 +6,7 @@ export function useGameSocket(roomId: string) {
   const [gameState, setGameState] = useState<GameStateDTO | null>(null);
 
   const stompRef = useRef<Client | null>(null);
-  const [winnerNumber, setWinnerNumber] = useState<number | null>(null);
+  const [winnerPlayer, setWinnerNumber] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('jwt');
@@ -55,7 +55,7 @@ export function useGameSocket(roomId: string) {
       });
     }
   }
-  return { gameState, rollDice, winnerNumber };
+  return { gameState, rollDice, winnerPlayer };
 }
 
 export function isItMyTurn(

@@ -37,7 +37,7 @@ const GameScene = () => {
   const user = auth?.user;
   const nickname = user?.nickname || '';
   // On récupère l'état du jeu (gameState), l'action pour lancer le dé et si c'est à mon tour
-  const { gameState, rollDice, winnerNumber } = useGameSocket(roomId!);
+  const { gameState, rollDice, winnerPlayer } = useGameSocket(roomId!);
   const createdScenesRef = useRef(false);
   const [introDone, setIntroDone] = useState(false);
 
@@ -56,7 +56,11 @@ const GameScene = () => {
 
     sceneMgr.createScene('endScene', (scene) => {
       importSkyBox(scene);
-      initEndGaming(scene, sceneMgr, winnerNumber);
+      //Recherche l'indice du gagnant
+      const winnerNumber = gameState?.players.findIndex(
+        (p) => p.nickname === winnerPlayer,
+      );
+      initEndGaming(scene, sceneMgr, winnerNumber ?? null);
     });
 
     sceneMgr.run();
