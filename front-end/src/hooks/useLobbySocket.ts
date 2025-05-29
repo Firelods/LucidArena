@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Client } from '@stomp/stompjs';
+import { WS_BASE } from '../services/constants';
 
 export function useLobbySocket(roomId: string, user: string) {
   const [players, setPlayers] = useState<string[]>([]);
@@ -16,7 +17,7 @@ export function useLobbySocket(roomId: string, user: string) {
     }
 
     const stomp = new Client({
-      brokerURL: `ws://localhost:8080/ws?access_token=${token}`,
+      brokerURL: `${WS_BASE}?access_token=${token}`,
       reconnectDelay: 5000,
       debug: () => {},
       onConnect: () => {

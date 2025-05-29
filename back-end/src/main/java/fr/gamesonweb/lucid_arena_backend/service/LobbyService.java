@@ -177,8 +177,6 @@ public class LobbyService {
         this.setGameState(lobbyId, state);
         messaging.convertAndSend("/topic/game/" + lobbyId, state);
 
-
-
         return new GameController.MiniGameOutcomeDTO(miniGameName, winnerNickname, highestScore);
 
     }

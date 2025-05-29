@@ -1,0 +1,69 @@
+/* src/components/Notification.css */
+.notification {
+    /* Fond semi-transparent pastel */
+    background: rgba(245, 230, 255, 0.85);
+
+    /* Texte sombre pour contraste doux */
+    color: #3a0ca3;
+
+    /* Typographie plus ludique */
+    font-family: 'Raleway', sans-serif;
+    font-weight: 600;
+
+    padding: 14px 24px;
+    border-radius: 12px;
+
+    /* Lueur externe pour effet “magique” */
+    box-shadow:
+        0 0 8px rgba(234, 62, 200, 0.6),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+
+    backdrop-filter: blur(6px);
+    max-width: 320px;
+    word-wrap: break-word;
+
+    /* Animations plus “souples” */
+    animation:
+        slideIn 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+        fadeOut 0.4s ease-in forwards 3.6s;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(120%) rotate(-3deg) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) rotate(0) scale(1);
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(120%) rotate(3deg) scale(0.9);
+    }
+}
+
+.notification::before {
+    /* Petite icône étoile en décor */
+    content: '★';
+    display: inline-block;
+    margin-right: 8px;
+    color: #d6336c;
+    font-size: 1.2em;
+    vertical-align: middle;
+}
+
+/* Container inchangé */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}

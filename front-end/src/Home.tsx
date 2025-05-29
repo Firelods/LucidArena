@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import GoogleLoginButton from './components/GoogleLoginButton';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { createRoom, joinRoom } from './services/lobbyService';
+import { API_BASE } from './services/constants';
 
 export default function Home() {
     const auth = useAuth();
@@ -13,6 +14,9 @@ export default function Home() {
     const [room, setRoom] = useState('');
     const [nicknameInput, setNicknameInput] = useState('');
     const [roomInput, setRoomInput] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [loadingCreate, setLoadingCreate] = useState(false);
+    const [loadingJoin, setLoadingJoin] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -22,8 +26,9 @@ export default function Home() {
     }, [user]);
 
     const handleSaveNickname = async () => {
+        setLoading(true);
         const token = localStorage.getItem('jwt');
-        const res = await fetch('http://localhost:8080/api/user/nickname', {
+        const res = await fetch(`${API_BASE}/user/nickname`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -32,27 +37,47 @@ export default function Home() {
             body: JSON.stringify({ nickname: nicknameInput }),
         });
         if (res.ok) {
-            setUser({
-                ...user,
-                nickname: nicknameInput,
-                email: user?.email || '',
-            });
+            if (setUser) {
+                setUser({
+                    ...user,
+                    nickname: nicknameInput,
+                    email: user?.email || '',
+                });
+            }
             setName(nicknameInput);
         }
+        setLoading(false);
     };
 
     const handleCreate = async () => {
+        setLoadingCreate(true);
         const id = Math.random().toString(36).substring(2, 8);
         const ok = await createRoom(id);
+        setLoadingCreate(false);
         if (ok) navigate(`/lobby/${id}`, { state: { name } });
     };
 
     const handleJoin = async () => {
         if (!room) return;
-        const ok = await joinRoom(room, name);
+        setLoadingJoin(true);
+        const ok = await joinRoom(room);
+        setLoadingJoin(false);
         if (ok) navigate(`/lobby/${room}`, { state: { name } });
         else alert('Room inexistante ou pleine.');
     };
+
+    function Loader({ color = "purple" }) {
+        const borderColor =
+            color === "green" ? "border-green-400"
+            : color === "purple" ? "border-purple-400"
+            : "border-gray-500";
+        return (
+            <div className="flex justify-center my-4">
+                <div className={`animate-spin rounded-full h-5 w-5 border-t-4 ${borderColor}`}></div>
+            </div>
+        );
+    }
+    
 
     if (!user) {
         return (
@@ -84,8 +109,9 @@ export default function Home() {
                     <button
                         onClick={handleSaveNickname}
                         className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
+                        disabled={loading}
                     >
-                        Valider
+                        {loading ? <Loader /> : 'Valider'}
                     </button>
                 </div>
             </div>
@@ -116,18 +142,21 @@ export default function Home() {
                 />
 
                 <div className="flex justify-between">
-                    <button
-                        onClick={handleCreate}
-                        className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
-                    >
-                        Créer une room
-                    </button>
-                    <button
-                        onClick={handleJoin}
-                        className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
-                    >
-                        Rejoindre
-                    </button>
+                <button
+                    onClick={handleCreate}
+                    className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
+                    disabled={loadingCreate || loadingJoin}
+                >
+                    {loadingCreate ? <Loader color="purple" /> : "Créer une room"}
+                </button>
+                <button
+                    onClick={handleJoin}
+                    className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
+                    disabled={loadingCreate || loadingJoin}
+                >
+                    {loadingJoin ? <Loader color="green" /> : "Rejoindre une room"}
+                </button>
+
                 </div>
             </div>
         </div>

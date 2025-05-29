@@ -5,6 +5,7 @@ import {
     ReactNode,
     useEffect,
 } from 'react';
+import { API_BASE } from '../services/constants';
 
 type User = {
     email: string;
@@ -25,7 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const jwt = localStorage.getItem('jwt');
         if (!jwt) return;
 
-        fetch('http://localhost:8080/api/user/me', {
+        fetch(`${API_BASE}/user/me`, {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${jwt}`,
