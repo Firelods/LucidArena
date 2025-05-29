@@ -69,7 +69,7 @@ export async function initMiniGame1(
 
       const txt = new TextBlock('txt', '');
       txt.textWrapping = true;
-      txt.fontFamily = 'Bangers, cursive';
+      txt.fontFamily = 'DynaPuff';
       txt.fontSize = 20;
       txt.color = '#333b40';
       panel.addControl(txt);
