@@ -1,0 +1,23 @@
+services:
+  backend:
+    image: emmaallain06/backend:latest
+    container_name: backend
+    ports:
+      - "8081:8080"
+    restart: always
+    networks:
+      - proxy_net
+ 
+  frontend:
+    image: emmaallain06/frontend:latest
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - proxy_net
+networks:
+  proxy_net:
+    external: true
