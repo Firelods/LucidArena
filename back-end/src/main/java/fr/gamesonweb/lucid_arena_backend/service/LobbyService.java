@@ -175,9 +175,7 @@ public class LobbyService {
             state.setCurrentPlayer(0); // Recommence au premier joueur
         }
         this.setGameState(lobbyId, state);
-        messaging.convertAndSend("/topic/game/" + lobbyId+"/end", state);
-
-
+        messaging.convertAndSend("/topic/game/" + lobbyId, state);
 
         return new GameController.MiniGameOutcomeDTO(miniGameName, winnerNickname, highestScore);
 
