@@ -48,16 +48,7 @@ export function useGameSocket(roomId: string) {
             setMiniGameInstr(instr);
           },
         );
-          stomp.subscribe(`/topic/game/${roomId}/end`, (message) => {
-              const winner = JSON.parse(message.body);
-              console.log(`Winner: ${winner}`);
-              //setWinnerNumber(winner);
-              // Ici, tu peux gérer l'affichage du gagnant ou rediriger vers une scène de fin
-          });
-
-
-
-          stomp.subscribe(
+        stomp.subscribe(
           `/topic/game/${roomId}/minigame/outcome`,
           ({ body }) => {
             const outcome = JSON.parse(body) as MiniGameOutcomeDTO;

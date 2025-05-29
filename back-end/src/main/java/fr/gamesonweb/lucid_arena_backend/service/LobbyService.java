@@ -7,8 +7,6 @@ import fr.gamesonweb.lucid_arena_backend.entity.PlayerProfile;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -171,7 +169,7 @@ public class LobbyService {
             state.setCurrentPlayer(0); // Recommence au premier joueur
         }
         this.setGameState(lobbyId, state);
-        PlayerProfile endWinner=checkIfEndGame();
+        PlayerProfile endWinner=checkIfEndGame(lobbyId);
         state.setWinner(endWinner !=null ? endWinner.getNickname() : null);
         messaging.convertAndSend("/topic/game/" + lobbyId, state);
 
