@@ -300,7 +300,7 @@ export async function initCloudGame(
 
       const txt = new TextBlock('txt', '');
       txt.textWrapping = true;
-      txt.fontFamily = 'Bangers, cursive';
+      txt.fontFamily = 'DynaPuff';
       txt.fontSize = 20;
       txt.color = '#333b40';
       panel.addControl(txt);

@@ -27,7 +27,6 @@ public class LobbyService {
     // Hashmap of lobbyId to HashMap of miniGameName to MiniGameResult
     private final Map<String, HashMap<String,MiniGameResult>> miniGameResults = new ConcurrentHashMap<>();
 
-
     public void createRoom(String roomId) {
         rooms.putIfAbsent(roomId, ConcurrentHashMap.newKeySet());
     }
@@ -224,6 +223,14 @@ public class LobbyService {
                 }
             }
         }
+
+        state.setCurrentPlayer(state.getCurrentPlayer() + 1);
+        if (state.getCurrentPlayer() == state.getPlayers().size()) {
+            state.setCurrentPlayer(0); // Recommence au premier joueur
+        }
+        this.setGameState(lobbyId, state);
+        messaging.convertAndSend("/topic/game/" + lobbyId, state);
+
         return null;
 
     }
