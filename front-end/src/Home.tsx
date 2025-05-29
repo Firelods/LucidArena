@@ -15,6 +15,8 @@ export default function Home() {
     const [nicknameInput, setNicknameInput] = useState('');
     const [roomInput, setRoomInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [loadingCreate, setLoadingCreate] = useState(false);
+    const [loadingJoin, setLoadingJoin] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -48,18 +50,18 @@ export default function Home() {
     };
 
     const handleCreate = async () => {
-        setLoading(true);
+        setLoadingCreate(true);
         const id = Math.random().toString(36).substring(2, 8);
         const ok = await createRoom(id);
-        setLoading(false);
+        setLoadingCreate(false);
         if (ok) navigate(`/lobby/${id}`, { state: { name } });
     };
 
     const handleJoin = async () => {
         if (!room) return;
-        setLoading(true);
-        const ok = await joinRoom(room,);
-        setLoading(false);
+        setLoadingJoin(true);
+        const ok = await joinRoom(room);
+        setLoadingJoin(false);
         if (ok) navigate(`/lobby/${room}`, { state: { name } });
         else alert('Room inexistante ou pleine.');
     };
@@ -67,7 +69,7 @@ export default function Home() {
     function Loader() {
         return (
             <div className="flex justify-center my-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-4 border-purple-500"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-t-4 border-purple-500"></div>
             </div>
         );
     }
@@ -136,19 +138,19 @@ export default function Home() {
                 />
 
                 <div className="flex justify-between">
-                    <button
+                <button
                         onClick={handleCreate}
                         className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
-                        disabled={loading}
+                        disabled={loadingCreate || loadingJoin}
                     >
-                        {loading ? <Loader /> : "Créer une room"}
+                        {loadingCreate ? <Loader /> : "Créer une room"}
                     </button>
                     <button
                         onClick={handleJoin}
                         className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
-                        disabled={loading}
+                        disabled={loadingCreate || loadingJoin}
                     >
-                        {loading ? <Loader /> : "Rejoindre une room"}
+                        {loadingJoin ? <Loader /> : "Rejoindre une room"}
                     </button>
                 </div>
             </div>
