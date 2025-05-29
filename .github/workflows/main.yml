@@ -2,7 +2,7 @@ name: Build & Push Front/Back Docker Images
 
 on:
   push:
-    branches: [ main ]  
+    branches: [ main, feat/devops ]  
 
 jobs:
   build-and-push:
@@ -28,6 +28,8 @@ jobs:
         file: ./front-end/Dockerfile
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+        build-args: |
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
         # 4. Build & Push Back (Maven)
     - name: Build & Push Back (Maven)
