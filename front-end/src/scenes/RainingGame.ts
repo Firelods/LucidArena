@@ -167,6 +167,7 @@ export function initRainingGame(
       `Score: ${score} / ${validScore}`,
     );
     scoreText.fontSize = 24;
+    scoreText.fontFamily = 'DynaPuff';
     scoreText.color = 'white';
     scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     scoreText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
@@ -196,7 +197,8 @@ export function initRainingGame(
     timerPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
     timerPanel.top = '-20px';
     inputUI.addControl(timerPanel);
-    timerText.fontSize = 30;
+    timerText.fontSize = 26;
+    timerText.fontFamily = 'DynaPuff';
     timerText.color = 'white';
     timerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     timerText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
@@ -307,6 +309,7 @@ export function initRainingGame(
         );
         endText.fontSize = 20;
         endText.color = 'white';
+        endText.fontFamily = 'DynaPuff';
         endText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
         endText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
         endPanel.addControl(endText);
@@ -318,6 +321,7 @@ export function initRainingGame(
         okBtn.cornerRadius = 10;
         okBtn.background = '#00adb5';
         okBtn.color = 'white';
+        okBtn.fontFamily = 'DynaPuff';
         okBtn.onPointerUpObservable.add(() => {
           onMiniGameEnd({ name: 'rainingGame', score: score });
           cleanupScene();
@@ -345,6 +349,7 @@ export function initRainingGame(
       'Utilisez les flèches ← et → pour déplacer votre personnage ; attrapez les bonnes icônes et évitez les poubelles. Cliquez sur "Jouer" pour commencer !',
     );
     startText.fontSize = 16;
+    startText.fontFamily = 'DynaPuff';
     startText.color = 'white';
     startText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     startText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
@@ -357,6 +362,7 @@ export function initRainingGame(
     playBtn.height = '40px';
     playBtn.top = '70px';
     playBtn.cornerRadius = 10;
+    playBtn.fontFamily = 'DynaPuff';
     playBtn.background = '#00adb5';
     playBtn.color = 'white';
     playBtn.onPointerUpObservable.add(() => {

@@ -158,10 +158,12 @@ export async function initClickerGame(
         (mesh) => mesh.getBoundingInfo().boundingBox.maximum.y,
       ),
     );
+
     hauteurLiane = maxY - minY;
     lianeMeshes.forEach((mesh) => {
       mesh.position.y -= minY;
     });
+
     pivotNode = new TransformNode('pivotNode', scene);
     pivotNode.position = Vector3.Zero();
     pivotNode.setPivotPoint(new Vector3(0, 0, 0));
@@ -209,6 +211,7 @@ export async function initClickerGame(
       true,
       scene,
     );
+
     const scorePanel = new Rectangle('scorePanel');
     scorePanel.width = '200px';
     scorePanel.height = '60px';
@@ -226,6 +229,7 @@ export async function initClickerGame(
       'scoreText',
       `Score: ${score} / ${objectif}`,
     );
+
     scoreText.fontSize = 24;
     scoreText.color = 'white';
     scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
@@ -266,7 +270,7 @@ export async function initClickerGame(
     clickBtn.shadowColor = '#393e46cc';
     clickBtn.shadowBlur = 18;
     clickBtn.fontSize = 25;
-    clickBtn.fontFamily = 'Bangers, cursive';
+    clickBtn.fontFamily = 'DynaPuff';
     clickBtn.top = '40%';
     clickBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     clickBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
@@ -320,7 +324,7 @@ export async function initClickerGame(
         ? `Bravo ! Tu as gagné !\nScore : ${score} / ${objectif}`
         : `Partie terminée ! Tu as perdu ! \nScore : ${score} / ${objectif}`;
       txt.textWrapping = true;
-      txt.fontFamily = 'Bangers, cursive';
+      txt.fontFamily = 'DynaPuff';
       txt.fontSize = 26;
       txt.color = '#333b40';
       txt.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
