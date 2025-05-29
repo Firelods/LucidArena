@@ -13,6 +13,9 @@ RUN npm install
 # Copie le reste des fichiers de l'application
 COPY . .
 
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 # Build de l'application React
 RUN npm run build
 
