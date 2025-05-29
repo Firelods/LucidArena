@@ -14,6 +14,7 @@ export default function Home() {
     const [room, setRoom] = useState('');
     const [nicknameInput, setNicknameInput] = useState('');
     const [roomInput, setRoomInput] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -23,6 +24,7 @@ export default function Home() {
     }, [user]);
 
     const handleSaveNickname = async () => {
+        setLoading(true);
         const token = localStorage.getItem('jwt');
         const res = await fetch(`${API_BASE}/user/nickname`, {
             method: 'POST',
@@ -42,20 +44,34 @@ export default function Home() {
             }
             setName(nicknameInput);
         }
+        setLoading(false);
     };
 
     const handleCreate = async () => {
+        setLoading(true);
         const id = Math.random().toString(36).substring(2, 8);
         const ok = await createRoom(id);
+        setLoading(false);
         if (ok) navigate(`/lobby/${id}`, { state: { name } });
     };
 
     const handleJoin = async () => {
         if (!room) return;
+        setLoading(true);
         const ok = await joinRoom(room,);
+        setLoading(false);
         if (ok) navigate(`/lobby/${room}`, { state: { name } });
         else alert('Room inexistante ou pleine.');
     };
+
+    function Loader() {
+        return (
+            <div className="flex justify-center my-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-4 border-purple-500"></div>
+            </div>
+        );
+    }
+    
 
     if (!user) {
         return (
@@ -87,8 +103,9 @@ export default function Home() {
                     <button
                         onClick={handleSaveNickname}
                         className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
+                        disabled={loading}
                     >
-                        Valider
+                        {loading ? <Loader /> : 'Valider'}
                     </button>
                 </div>
             </div>
@@ -122,14 +139,16 @@ export default function Home() {
                     <button
                         onClick={handleCreate}
                         className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
+                        disabled={loading}
                     >
-                        Créer une room
+                        {loading ? <Loader /> : "Créer une room"}
                     </button>
                     <button
                         onClick={handleJoin}
                         className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
+                        disabled={loading}
                     >
-                        Rejoindre
+                        {loading ? <Loader /> : "Rejoindre une room"}
                     </button>
                 </div>
             </div>
