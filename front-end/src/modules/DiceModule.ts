@@ -137,4 +137,9 @@ export class DiceModule {
             this.originalScaling,
         );
     }
+
+    async dispose() {
+        this.dice.dispose();
+        this.dice = null!;
+    } 
 }
