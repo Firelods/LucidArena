@@ -29,7 +29,7 @@ jobs:
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
         build-args: |
-          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
         # 4. Build & Push Back (Maven)
     - name: Build & Push Back (Maven)
