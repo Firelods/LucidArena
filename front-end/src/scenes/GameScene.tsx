@@ -31,6 +31,7 @@ const GameScene = () => {
   const sceneMgrRef = useRef<SceneManager>(null);
   const gameStateRef = useRef<GameStateDTO | null>(null);
   const [status, setStatus] = useState<string>('');
+  const animQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   // Récupère contexte jeu (state synchrone)
   const { roomId } = useParams();
@@ -42,6 +43,10 @@ const GameScene = () => {
     useGameSocket(roomId!);
   const createdScenesRef = useRef(false);
   const [introDone, setIntroDone] = useState(false);
+  // Ref pour savoir si c'est le tout premier gameState
+  const initialLoadRef = useRef(true);
+  // Ref pour mémoriser la dernière valeur de lastDiceRoll
+  const lastDiceRef = useRef<number | null>(null);
 
   // 1) Initialisation du moteur Babylon + scène d'intro
   useEffect(() => {
@@ -112,7 +117,7 @@ const GameScene = () => {
     // Scène ClickerGame
     sceneMgr.createScene('ClickerGame', (scene) => {
       importSkyBox(scene);
-      initClickerGame(scene, 0, sceneMgr, false);
+      initClickerGame(scene, 0, sceneMgr, false, onMiniGameEnd);
     });
 
     // Scène RainingGame
@@ -123,6 +128,7 @@ const GameScene = () => {
         Math.floor(Math.random() * (15 - 8)) + 8,
         0,
         sceneMgr,
+        onMiniGameEnd,
       );
     });
 
@@ -134,42 +140,28 @@ const GameScene = () => {
 
   useEffect(() => {
     if (gameState) {
-      gameStateRef.current = gameState;
+      // gameStateRef.current = gameState;
     }
   }, [gameState, introDone]);
 
+  // 3) On ne lance le mini-jeu qu'après la fin de la file d'animations
   useEffect(() => {
-    const handleMiniGameInstr = async () => {
-      console.log(
-        `Mini-game instruction received in GameScene: ${JSON.stringify(miniGameInstr)}`,
-      );
-      // wait for 1s to ensure character movement is done
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (!miniGameInstr) return;
+    if (!miniGameInstr) return;
+    (async () => {
+      await animQueueRef.current; // attente de la fin de tous les movePlayer
       const { playerNickname: p, miniGameName: mg } = miniGameInstr;
-      if (p == null) {
-        // c’est un mini-jeu de groupe, pas de joueur spécifique
-        console.log(`Mini-jeu de groupe: ${mg}`);
-
-        setStatus(`Lance le mini-jeu ${mg} !`);
+      // Votre logique de switch
+      if (p == null || p === nickname) {
         sceneMgrRef.current?.switchTo(mg);
-        return;
-      }
-      if (p === nickname) {
-        // c’est à moi de jouer
-        console.log(`C'est à moi de jouer au mini-jeu: ${mg}`);
-
-        setStatus(`À toi de jouer ! Lance le mini-jeu ${mg}`);
-        sceneMgrRef.current?.switchTo(mg);
-        return;
+        setStatus(
+          p === nickname
+            ? `À toi de jouer ! Lance le mini-jeu ${mg}`
+            : `Lancement du mini-jeu ${mg}`,
+        );
       } else {
-        console.log(`C'est à ${p} de jouer au mini-jeu: ${mg}`);
-
-        // c’est à un autre joueur
         setStatus(`${p} joue au mini-jeu ${mg}, attends ton tour…`);
       }
-    };
-    handleMiniGameInstr();
+    })();
   }, [miniGameInstr]);
 
   useEffect(() => {
@@ -194,6 +186,54 @@ const GameScene = () => {
       );
     }
   }, [miniGameOutcome]);
+
+  // 2) À chaque update de gameState, on enfile une nouvelle étape d'animation
+  useEffect(() => {
+    if (!gameState) return;
+    // On crée un nouveau Promise chainé
+    animQueueRef.current = (async () => {
+      const prevPos = gameStateRef.current?.positions || [];
+      const nextPos = gameState.positions;
+      if (!prevPos.length) {
+        // Si c'est la première fois, on initialise les positions
+        console.log(`Positions initiales: ${nextPos.join(', ')}`);
+        await boardMod.current.setPositions(nextPos);
+        gameStateRef.current = gameState; // on met à jour le ref
+        return; // pas besoin de faire d'animation
+      }
+      console.log(
+        `Positions précédentes: ${prevPos.join(', ')}, Positions suivantes: ${nextPos.join(', ')}`,
+      );
+
+      // 2) Gestion du dé : on compare seulement si ce n'est PAS le premier chargement
+      const newDice = gameState.lastDiceRoll;
+      if (
+        !initialLoadRef.current && // pas le tout premier état
+        newDice != null &&
+        newDice !== lastDiceRef.current // vraie différence
+      ) {
+        await diceMod.current.show();
+        await diceMod.current.roll(newDice);
+        await diceMod.current.hide();
+      }
+      // 2.a) Animer chaque pion là où il doit aller
+      for (let i = 0; i < nextPos.length; i++) {
+        const steps = (nextPos[i] || 0) - (prevPos[i] || 0);
+        if (steps > 0) {
+          console.log(
+            `Déplacement joueur ${i} de ${prevPos[i]} à ${nextPos[i]} (${steps} pas)`,
+          );
+          await boardMod.current.movePlayer(i, steps);
+          console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
+        }
+      }
+
+      // 3) Mémoriser pour la prochaine comparaison
+      lastDiceRef.current = newDice;
+      initialLoadRef.current = false; // à partir de maintenant, on n’est plus au premier chargement
+      gameStateRef.current = gameState; // mise à jour du ref global
+    })();
+  }, [gameState]);
 
   return (
     <>

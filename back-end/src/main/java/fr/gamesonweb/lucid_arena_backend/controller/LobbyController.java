@@ -65,7 +65,7 @@ public class LobbyController {
     @MessageMapping("/lobby/join/{roomId}")
     @SendTo("/topic/lobby/{roomId}")
     public ListPlayerJoinDTO joinLobby(PlayerJoinDTO message, @DestinationVariable String roomId,
-            MessageHeaders headers) {
+                                       MessageHeaders headers) {
         Map<String, Object> sessionAttributes = (Map<String, Object>) headers.get("simpSessionAttributes");
         String user = (String) sessionAttributes.get("user");
         log.info("User: " + user + " joined room " + roomId);
@@ -118,9 +118,7 @@ public class LobbyController {
         String miniGame = "";
         switch (tileType) {
             case "multi" -> miniGame = random.nextInt(2) == 0 ? "mini1" : "StarGame";
-            // case "solo" -> miniGame = random.nextInt(2) == 0 ? "ClickerGame" :
-            // "rainingGame";
-            case "solo" -> miniGame = random.nextInt(2) == 0 ? "mini1" : "mini1";
+            case "solo" -> miniGame = random.nextInt(2) == 0 ? "ClickerGame" : "rainingGame";
             case "bonus" -> state.getScores()[currentPlayerIndex] += 1;
             case "malus" -> state.getScores()[currentPlayerIndex] -= 1;
             default -> throw new IllegalStateException("Unknown tile type: " + tileType);
@@ -139,8 +137,7 @@ public class LobbyController {
 
         if (!miniGame.isEmpty()) {
             MiniGameInstructionDTO instr = new MiniGameInstructionDTO(
-                    // tileType.equals("multi") ? null : nickname, miniGame
-                    tileType.equals("multi") ? null : null, miniGame);
+                     tileType.equals("multi") ? null : nickname, miniGame);
             messagingTemplate.convertAndSend(
                     "/topic/game/" + lobbyId + "/minigame/instruction",
                     instr);
