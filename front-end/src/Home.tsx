@@ -66,10 +66,14 @@ export default function Home() {
         else alert('Room inexistante ou pleine.');
     };
 
-    function Loader() {
+    function Loader({ color = "purple" }) {
+        const borderColor =
+            color === "green" ? "border-green-500"
+            : color === "purple" ? "border-purple-500"
+            : "border-gray-500";
         return (
             <div className="flex justify-center my-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-4 border-purple-500"></div>
+                <div className={`animate-spin rounded-full h-3 w-3 border-t-4 ${borderColor}`}></div>
             </div>
         );
     }
@@ -139,19 +143,20 @@ export default function Home() {
 
                 <div className="flex justify-between">
                 <button
-                        onClick={handleCreate}
-                        className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
-                        disabled={loadingCreate || loadingJoin}
-                    >
-                        {loadingCreate ? <Loader /> : "Créer une room"}
-                    </button>
-                    <button
-                        onClick={handleJoin}
-                        className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
-                        disabled={loadingCreate || loadingJoin}
-                    >
-                        {loadingJoin ? <Loader /> : "Rejoindre une room"}
-                    </button>
+                    onClick={handleCreate}
+                    className="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition"
+                    disabled={loadingCreate || loadingJoin}
+                >
+                    {loadingCreate ? <Loader color="purple" /> : "Créer une room"}
+                </button>
+                <button
+                    onClick={handleJoin}
+                    className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
+                    disabled={loadingCreate || loadingJoin}
+                >
+                    {loadingJoin ? <Loader color="green" /> : "Rejoindre une room"}
+                </button>
+
                 </div>
             </div>
         </div>
