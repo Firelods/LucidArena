@@ -21,13 +21,23 @@ import {
 
 import '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
+import { MiniGameResult } from '../hooks/useGameSocket';
 
 export async function initClickerGame(
   scene: Scene,
   activePlayer: number,
   sceneManager: SceneManager,
   canPlay: boolean,
+  onMiniGameEnd: (result: MiniGameResult) => void,
 ): Promise<void> {
+  function cleanupScene() {
+    // Dispose all meshes, materials, textures
+    scene.meshes.forEach((m) => m.dispose());
+    scene.materials.forEach((mat) => mat.dispose());
+    scene.textures.forEach((tex) => tex.dispose());
+    // Clear render loop callbacks
+    scene.onBeforeRenderObservable.clear();
+  }
   // ---------------------- INIT SCENE -------------------------
   const camera = new ArcRotateCamera(
     'camClicker',
@@ -130,6 +140,7 @@ export async function initClickerGame(
   let pivotNode: TransformNode | null = null;
   let hauteurLiane = 0;
 
+
   try {
     const result = await SceneLoader.ImportMeshAsync(
       '',
@@ -148,10 +159,12 @@ export async function initClickerGame(
         (mesh) => mesh.getBoundingInfo().boundingBox.maximum.y,
       ),
     );
+    
     hauteurLiane = maxY - minY;
     lianeMeshes.forEach((mesh) => {
       mesh.position.y -= minY;
     });
+
     pivotNode = new TransformNode('pivotNode', scene);
     pivotNode.position = Vector3.Zero();
     pivotNode.setPivotPoint(new Vector3(0, 0, 0));
@@ -176,6 +189,7 @@ export async function initClickerGame(
       scene,
     );
 
+
     const arrowMesh = arrowMeshes[0] as AbstractMesh;
     arrowMesh.position = new Vector3(15, 20.5 + 0.114 * objectif, 0);
     arrowMesh.scaling = new Vector3(10, 10, 10);
@@ -199,6 +213,7 @@ export async function initClickerGame(
       true,
       scene,
     );
+
     const scorePanel = new Rectangle('scorePanel');
     scorePanel.width = '200px';
     scorePanel.height = '60px';
@@ -216,6 +231,7 @@ export async function initClickerGame(
       'scoreText',
       `Score: ${score} / ${objectif}`,
     );
+
     scoreText.fontSize = 24;
     scoreText.color = 'white';
     scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
@@ -329,7 +345,8 @@ export async function initClickerGame(
       returnBtn.paddingBottom = '20px';
       panel.addControl(returnBtn);
       returnBtn.onPointerUpObservable.add(() => {
-        gui.dispose();
+        onMiniGameEnd({ name: 'ClickerGame', score: score });
+        cleanupScene();
         sceneManager.switchTo('main');
       });
     };
@@ -374,6 +391,7 @@ export async function initClickerGame(
     infoText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
     infoText.top = '-20%';
     panel.addControl(infoText);
+
 
     const startBtn = Button.CreateSimpleButton(
       'btnStart',

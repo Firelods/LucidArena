@@ -26,11 +26,13 @@ import {
   Image as GUIImage,
 } from '@babylonjs/gui';
 import { SceneManager } from '../engine/SceneManager';
+import { MiniGameResult } from '../hooks/useGameSocket';
 
 export async function initCloudGame(
   scene: Scene,
   sceneMgr: SceneManager,
   activePlayer: number,
+  onMiniGameEnd: (result: MiniGameResult) => void,
 ): Promise<void> {
   // 0) Caméra fixe
   const camera = new ArcRotateCamera(
@@ -325,7 +327,7 @@ export async function initCloudGame(
 
   // Popups d'intro
   await showPopups([
-    'Bienvenue dans Cloud Game !',
+    'Bienvenue dans Star Game !',
     'Maintenez la touche Espace pour doser la puissance de votre lancer.',
     'Relâchez Espace quand vous pensez que votre étoile atteindra la bande centrale.',
     'Plus vous serez proche du centre, plus vous gagnerez de points !',
@@ -437,6 +439,7 @@ export async function initCloudGame(
             await showPopups([
               `🏁 Partie terminée : ${scores[0]} pts sur ${totalRounds} manches !`,
             ]);
+            onMiniGameEnd({ name: 'StarGame', score: scores[0] });
             resetMatch();
             sceneMgr.switchTo('main');
           } else {
