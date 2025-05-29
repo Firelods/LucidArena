@@ -3,7 +3,7 @@ services:
     image: emmaallain06/backend:latest
     container_name: backend
     ports:
-      - "8081:8000"
+      - "8081:8080"
     restart: always
   frontend:
       image: emmaallain06/frontend:latest
