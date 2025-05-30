@@ -143,15 +143,9 @@ const GameScene = () => {
     sceneMgr.switchTo('main');
   }, [gameState]);
 
-  useEffect(() => {
-    if (gameState) {
-      // gameStateRef.current = gameState;
-    }
-  }, [gameState, introDone]);
-
   // 3) On ne lance le mini-jeu qu'après la fin de la file d'animations
   useEffect(() => {
-    if (!miniGameInstr) return;
+    if (!miniGameInstr || initialLoadRef.current) return;
     (async () => {
       await animQueueRef.current; // attente de la fin de tous les movePlayer
       const { playerNickname: p, miniGameName: mg } = miniGameInstr;
@@ -206,14 +200,6 @@ const GameScene = () => {
       }
       const prevPos = gameStateRef.current?.positions || [];
       const nextPos = gameState.positions;
-      // if (initialLoadRef.current) {
-      //   // Première itération : on force le positionnement
-      //   console.log(`Initialisation des positions : ${nextPos.join(', ')}`);
-      //   await boardMod.current.setPositions(nextPos);
-      //   initialLoadRef.current = false;
-      //   gameStateRef.current = gameState;
-      //   return;
-      // }
       console.log(
         `Positions précédentes: ${prevPos.join(', ')}, Positions suivantes: ${nextPos.join(', ')}`,
       );
