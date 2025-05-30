@@ -55,7 +55,7 @@ export async function initClickerGame(
 
   let score = 0;
   const duration = 20; // durée en secondes
-  const objectif = 66;
+  const objectif = 80;
 
   // Création du sol damier
   const Z_PLANE = 5;
