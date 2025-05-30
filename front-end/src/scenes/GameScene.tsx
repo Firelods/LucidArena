@@ -218,8 +218,16 @@ const GameScene = () => {
       // 2.a) Animer chaque pion là où il doit aller
       for (let i = 0; i < nextPos.length; i++) {
         // calculer le nombre de pas à faire en fonction de la position précédente avec lat
-        const steps = (nextPos[i] || 0) - (prevPos[i] || 0);
-        if (steps != 0) {
+        if (!gameState.boardTypes) return;
+        let steps = 0;
+        if (nextPos[i] < prevPos[i]) {
+          // on a fait un tour complet, on doit ajouter le nombre de tuiles
+          steps = nextPos[i] + gameState.boardTypes.length - prevPos[i];
+        } else {
+          steps = nextPos[i] - prevPos[i];
+        }
+
+        if (steps > 0) {
           console.log(
             `Déplacement joueur ${i} de ${prevPos[i]} à ${nextPos[i]} (${steps} pas)`,
           );
