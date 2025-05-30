@@ -202,17 +202,19 @@ public class LobbyService {
             gameState.getScores()[playerIndex] = currentScore + 1;
             this.setGameState(lobbyId, gameState);
             log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
-            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
+//            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
             PlayerProfile endWinner=checkIfEndGame(lobbyId);
             gameState.setWinner(endWinner !=null ? endWinner.getNickname() : null);
-            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
-            return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
         } else {
             log.warning("Player " + playerNickname + " not found in game state for lobby " + lobbyId);
         }
 
         resetMinigameResult(lobbyId, miniGameName);
-
+        gameState.setCurrentPlayer(gameState.getCurrentPlayer() + 1);
+        if (gameState.getCurrentPlayer() == gameState.getPlayers().size()) {
+            gameState.setCurrentPlayer(0); // Recommence au premier joueur
+        }
+        messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
 
         return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
     }

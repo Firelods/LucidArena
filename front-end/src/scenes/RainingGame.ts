@@ -23,6 +23,7 @@ import {
 } from '@babylonjs/gui';
 import '@babylonjs/loaders';
 import { MiniGameResult } from '../hooks/useGameSocket';
+import { playerFiles } from '../utils/utils';
 
 // --- Constants & Assets ---
 const Z_PLANE = 5;
@@ -32,12 +33,6 @@ const BAD = ['poubelle.glb'];
 const ALL_ASSETS = [...GOOD, ...BAD];
 const OBJECT_SCALE = 0.5;
 const COLLISION_THRESHOLD = OBJECT_SCALE;
-const CHAR_FILES = [
-  'character_blue.glb',
-  'character_green.glb',
-  'character_pink.glb',
-  'character.glb',
-];
 const ASSETS_ROOT = '/assets/';
 const GAME_DURATION_MS = 20000;
 const FALL_SPEED = 0.08;
@@ -207,7 +202,7 @@ export function initRainingGame(
     const { meshes: charMeshes } = await SceneLoader.ImportMeshAsync(
       '',
       ASSETS_ROOT,
-      CHAR_FILES[activePlayer],
+      playerFiles[activePlayer],
       scene,
     );
     const charMesh = charMeshes[0] as AbstractMesh;

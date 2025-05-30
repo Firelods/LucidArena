@@ -18,7 +18,6 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 import {
   AdvancedDynamicTexture,
-  Button,
   Control,
   Rectangle,
   Grid,
@@ -27,6 +26,13 @@ import {
 } from '@babylonjs/gui';
 import { SceneManager } from '../engine/SceneManager';
 import { MiniGameResult } from '../hooks/useGameSocket';
+import {
+  playerColors,
+  playerFiles,
+  playerNames,
+  showPopups,
+  starFiles,
+} from '../utils/utils';
 
 export async function initCloudGame(
   scene: Scene,
@@ -73,19 +79,6 @@ export async function initCloudGame(
   groundMat.diffuseColor = new Color3(0.8, 0.8, 0.8);
   platform.material = groundMat;
 
-  // 3) Chargement des persos + étoiles
-  const playerFiles = [
-    'character.glb',
-    'character_pink.glb',
-    'character_blue.glb',
-    'character_green.glb',
-  ];
-  const starFiles = [
-    'etoile_orange.glb',
-    'etoile_pink.glb',
-    'etoile_blue.glb',
-    'etoile_green.glb',
-  ];
   const effectiveWidth = trackWidth - 2 * paddingX;
   const startZ = -trackLength / 2 + paddingZ;
   const starHeightY = 1.5;
@@ -244,13 +237,6 @@ export async function initCloudGame(
   spaceIcon.alpha = 0.3;
   inputGUI.addControl(spaceIcon);
 
-  const playerNames = [
-    'Orange Player',
-    'Pink Player',
-    'Blue Player',
-    'Green Player',
-  ];
-  const playerColors = ['#f39c12', '#e91e63', '#3498db', '#2ecc71'];
   const textBlocks: TextBlock[] = [];
 
   const cell = new Rectangle(`cell${activePlayer}`);
@@ -284,49 +270,8 @@ export async function initCloudGame(
 
   const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
 
-  async function showPopups(messages: string[]): Promise<void> {
-    return new Promise((resolve) => {
-      let idx = 0;
-      const panel = new Rectangle('panel');
-      panel.width = '50%';
-      panel.height = '200px';
-      panel.cornerRadius = 20;
-      panel.background = '#dfe8ed';
-      panel.color = '#34acec';
-      panel.thickness = 4;
-      panel.shadowColor = '#34acec';
-      panel.shadowBlur = 8;
-      gui.addControl(panel);
-
-      const txt = new TextBlock('txt', '');
-      txt.textWrapping = true;
-      txt.fontFamily = 'DynaPuff';
-      txt.fontSize = 20;
-      txt.color = '#333b40';
-      panel.addControl(txt);
-
-      const btn = Button.CreateSimpleButton('btn', '➜');
-      btn.width = '50px';
-      btn.height = '50px';
-      btn.cornerRadius = 25;
-      btn.top = '55px';
-      panel.addControl(btn);
-
-      const next = () => {
-        if (idx >= messages.length) {
-          panel.dispose();
-          resolve();
-        } else {
-          txt.text = messages[idx++];
-        }
-      };
-      btn.onPointerUpObservable.add(next);
-      next();
-    });
-  }
-
   // Popups d'intro
-  await showPopups([
+  await showPopups(gui, [
     'Bienvenue dans Star Game !',
     'Maintenez la touche Espace pour doser la puissance de votre lancer.',
     'Relâchez Espace quand vous pensez que votre étoile atteindra la bande centrale.',
@@ -339,9 +284,6 @@ export async function initCloudGame(
 
   // 8) Reset initial
   let pressStart = 0;
-  const maxPress = 4;
-  const maxDist = 50;
-  let current = 0;
   let thrown = false;
   function resetRound() {
     // 1) Remise en place des étoiles
@@ -430,20 +372,20 @@ export async function initCloudGame(
 
           scores[0] += points;
           updateScoreboard();
-          await showPopups([
+          await showPopups(gui, [
             `🎯 Vous gagnez ${points} point${points > 1 ? 's' : ''} !`,
           ]);
 
           currentRound++;
           if (currentRound >= totalRounds) {
-            await showPopups([
+            await showPopups(gui, [
               `🏁 Partie terminée : ${scores[0]} pts sur ${totalRounds} manches !`,
             ]);
             onMiniGameEnd({ name: 'StarGame', score: scores[0] });
             resetMatch();
             sceneMgr.switchTo('main');
           } else {
-            await showPopups([
+            await showPopups(gui, [
               `🔄 Manche ${currentRound + 1} sur ${totalRounds}`,
             ]);
             resetRound();

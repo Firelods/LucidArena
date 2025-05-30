@@ -22,6 +22,7 @@ import {
 import '@babylonjs/inspector';
 import { SceneManager } from '../engine/SceneManager';
 import { MiniGameResult } from '../hooks/useGameSocket';
+import { playerFiles, showPopups } from '../utils/utils';
 
 export async function initClickerGame(
   scene: Scene,
@@ -30,15 +31,7 @@ export async function initClickerGame(
   canPlay: boolean,
   onMiniGameEnd: (result: MiniGameResult) => void,
 ): Promise<void> {
-  function cleanupScene() {
-    // Dispose all meshes, materials, textures
-    scene.meshes.forEach((m) => m.dispose());
-    scene.materials.forEach((mat) => mat.dispose());
-    scene.textures.forEach((tex) => tex.dispose());
-    // Clear render loop callbacks
-    scene.onBeforeRenderObservable.clear();
-  }
-  // ---------------------- INIT SCENE -------------------------
+  // --- INITIALISATION BASIQUE SCENE ---
   const camera = new ArcRotateCamera(
     'camClicker',
     1.578,
@@ -50,26 +43,21 @@ export async function initClickerGame(
   new HemisphericLight('lightClicker', new Vector3(0, 1, 0), scene).intensity =
     0.7;
 
-  const characterFiles = [
-    'character_blue.glb',
-    'character_green.glb',
-    'character_pink.glb',
-    'character.glb',
-  ];
+  // Chargement du joueur
   const { meshes: charMeshes } = await SceneLoader.ImportMeshAsync(
     '',
     '/assets/',
-    characterFiles[activePlayer],
+    playerFiles[activePlayer],
     scene,
   );
   const charMesh = charMeshes[0] as AbstractMesh;
   charMesh.position = new Vector3(9.6, 20, 0);
 
   let score = 0;
-  const duration = 20;
-  //const objectif = Math.floor(Math.random() * (100 - 50)) + 50;
-  const objectif = 66; // Objectif fixe pour le mini-jeu
-  // Sol damier
+  const duration = 20; // durée en secondes
+  const objectif = 66;
+
+  // Création du sol damier
   const Z_PLANE = 5;
   const gridLength = Z_PLANE * 6;
   const gridWidth = Z_PLANE * 9;
@@ -78,335 +66,224 @@ export async function initClickerGame(
   const size = 512;
   const dt = new DynamicTexture('grid', { width: size, height: size }, scene);
   const ctx = dt.getContext();
-  const cellWidth = size / cols;
-  const cellHeight = size / rows;
+  const cellW = size / cols;
+  const cellH = size / rows;
   for (let i = 0; i < cols; i++) {
     for (let j = 0; j < rows; j++) {
       ctx.fillStyle = (i + j) % 2 === 0 ? '#fff' : '#000';
-      ctx.fillRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
+      ctx.fillRect(i * cellW, j * cellH, cellW, cellH);
     }
   }
   dt.update();
-  const mat = new StandardMaterial('gridMat', scene);
-  mat.diffuseTexture = dt;
-  mat.specularColor = Color3.Black();
-  mat.emissiveColor = Color3.White();
+  const groundMat = new StandardMaterial('gridMat', scene);
+  groundMat.diffuseTexture = dt;
+  groundMat.specularColor = Color3.Black();
+  groundMat.emissiveColor = Color3.White();
   const ground = MeshBuilder.CreateGround(
     'ground',
     { width: gridWidth, height: gridLength },
     scene,
   );
-  ground.material = mat;
-  ground.position.x = 10;
-  ground.position.y = 0;
+  ground.material = groundMat;
+  ground.position.set(10, 0, 0);
 
-  // Pot principal
-  const potHeight = 2;
-  const potRadius = 1;
-
+  // Pot et liane
   const pot = MeshBuilder.CreateCylinder(
     'pot',
+    { diameter: 4, height: 2, tessellation: 24 },
+    scene,
+  );
+  pot.position.set(10, 1, -1);
+
+  const lianeData = await SceneLoader.ImportMeshAsync(
+    '',
+    '/assets/',
+    'liane.glb',
+    scene,
+  );
+  const lianeMeshes = lianeData.meshes.filter((m) => m.getTotalVertices() > 0);
+  const minY = Math.min(
+    ...lianeMeshes.map((m) => m.getBoundingInfo().boundingBox.minimum.y),
+  );
+  const maxY = Math.max(
+    ...lianeMeshes.map((m) => m.getBoundingInfo().boundingBox.maximum.y),
+  );
+  lianeMeshes.forEach((m) => (m.position.y -= minY));
+  const heightLiane = maxY - minY;
+
+  // Cercle cible à la hauteur de la liane
+  const targetCircle = MeshBuilder.CreateTorus(
+    'targetCircle',
     {
-      diameter: potRadius * 4,
-      height: potHeight,
-      tessellation: 24,
+      diameter: 4.5,
+      thickness: 0.1,
+      tessellation: 64,
     },
     scene,
   );
-  pot.position.x = 10;
-  pot.position.y = 1;
-  pot.position.z = -1;
-  const potMat = new StandardMaterial('potMat', scene);
-  potMat.diffuseColor = new Color3(0.35, 0.2, 0.08);
-  pot.material = potMat;
+  // Orienter à plat
+  // targetCircle.rotation.x = Math.PI / 2;
+  // Positionner au-dessus du pot à la hauteur cible
+  const initialCharY = charMesh.position.y;
+  targetCircle.position.set(10, initialCharY - 10 + heightLiane * 0.2, -1);
+  const circleMat = new StandardMaterial('circleMat', scene);
+  circleMat.emissiveColor = new Color3(1, 0, 0);
+  targetCircle.material = circleMat;
 
-  // Rebord du pot
-  const potLip = MeshBuilder.CreateTorus(
-    'potLip',
-    {
-      diameter: potRadius * 4,
-      thickness: 0.3,
-      tessellation: 32,
-    },
+  const pivotNode = new TransformNode('pivotNode', scene);
+  lianeMeshes.forEach((m) => (m.parent = pivotNode));
+  pivotNode.position.set(0, 0, 0);
+  pivotNode.setPivotPoint(Vector3.Zero());
+
+  const rotationNode = new TransformNode('rotationNode', scene);
+  rotationNode.position.set(7, -2, 0);
+  rotationNode.rotation.set(0, Math.PI / 6, 0);
+  pivotNode.parent = rotationNode;
+  pivotNode.scaling.scaleInPlace(0.2);
+
+  const initialScaling = pivotNode.scaling.clone();
+
+  // Affiche une séquence de popups avant le lancement
+  const gui = AdvancedDynamicTexture.CreateFullscreenUI(
+    'uiClicker',
+    true,
     scene,
   );
-  potLip.position.x = 10;
-  potLip.position.y = 2;
-  potLip.position.z = -1;
-  potLip.material = potMat;
-
-  // Liane
-  let rotationNode: TransformNode | null = null;
-  let pivotNode: TransformNode | null = null;
-  let hauteurLiane = 0;
-
-  try {
-    const result = await SceneLoader.ImportMeshAsync(
-      '',
-      '/assets/',
-      'liane.glb',
-      scene,
-    );
-    const lianeMeshes = result.meshes.filter((m) => m.getTotalVertices() > 0);
-    const minY = Math.min(
-      ...lianeMeshes.map(
-        (mesh) => mesh.getBoundingInfo().boundingBox.minimum.y,
-      ),
-    );
-    const maxY = Math.max(
-      ...lianeMeshes.map(
-        (mesh) => mesh.getBoundingInfo().boundingBox.maximum.y,
-      ),
-    );
-
-    hauteurLiane = maxY - minY;
-    lianeMeshes.forEach((mesh) => {
-      mesh.position.y -= minY;
-    });
-
-    pivotNode = new TransformNode('pivotNode', scene);
-    pivotNode.position = Vector3.Zero();
-    pivotNode.setPivotPoint(new Vector3(0, 0, 0));
-    lianeMeshes.forEach((mesh) => {
-      mesh.parent = pivotNode;
-    });
-    rotationNode = new TransformNode('rotationNode', scene);
-    rotationNode.position = new Vector3(7, -2, 0);
-    rotationNode.rotation = new Vector3(0, Math.PI / 6, 0);
-    pivotNode.parent = rotationNode;
-    pivotNode.scaling = new Vector3(0.2, 0.2, 0.2);
-  } catch (error) {
-    console.error('Erreur lors du chargement du modèle GLB :', error);
+  if (!canPlay) {
+    await showPopups(gui, [
+      'Prêt ? Cliquez sur le bouton pour commencer le mini-jeu!',
+    ]);
   }
 
-  // Fleche
-  try {
-    const { meshes: arrowMeshes } = await SceneLoader.ImportMeshAsync(
-      '',
-      '/assets/',
-      'arrow.glb',
-      scene,
-    );
+  // Lancement du jeu
+  async function launchGame() {
+    score = 0;
+    charMesh.position.y = initialCharY;
+    pivotNode.scaling.copyFrom(initialScaling);
+    rotationNode.rotation.set(0, Math.PI / 6, 0);
 
-    const arrowMesh = arrowMeshes[0] as AbstractMesh;
-    arrowMesh.position = new Vector3(15, 20.5 + 0.114 * objectif, 0);
-    arrowMesh.scaling = new Vector3(10, 10, 10);
-  } catch (err) {
-    console.error('Erreur lors du chargement de la flèche:', err);
-  }
+    const scoreText = createTextPanel(gui, 'Score: 0 / ' + objectif, true);
+    const timerText = createTextPanel(gui, 'Temps : ' + duration + 's', false);
 
-  // ---------------------- MINI-JEU / GUI / LOGIQUE -------------------
-  const launchGame = async () => {
-    const playerState = { mesh: charMesh, lane: 0, alive: true };
-
-    const gui = AdvancedDynamicTexture.CreateFullscreenUI(
-      'uiClicker',
-      true,
-      scene,
-    );
-
-    // Score Box
-    const scoreUI = AdvancedDynamicTexture.CreateFullscreenUI(
-      'scoreUI',
-      true,
-      scene,
-    );
-
-    const scorePanel = new Rectangle('scorePanel');
-    scorePanel.width = '200px';
-    scorePanel.height = '60px';
-    scorePanel.color = '#00adb5';
-    scorePanel.cornerRadius = 10;
-    scorePanel.background = '#393e46';
-    scorePanel.thickness = 2;
-    scorePanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
-    scorePanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-    scorePanel.left = '10px';
-    scorePanel.top = '10px';
-    gui.addControl(scorePanel);
-
-    const scoreText = new TextBlock(
-      'scoreText',
-      `Score: ${score} / ${objectif}`,
-    );
-
-    scoreText.fontSize = 24;
-    scoreText.color = 'white';
-    scoreText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    scoreText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    scorePanel.addControl(scoreText);
-
-    // Timer Box
-    const timerText = new TextBlock(
-      'timerText',
-      `Temps: ${(duration / 1000).toFixed(1)}s`,
-    );
-    const timerPanel = new Rectangle('timerPanel');
-    timerPanel.width = '200px';
-    timerPanel.height = '60px';
-    timerPanel.cornerRadius = 10;
-    timerPanel.background = '#393e46';
-    timerPanel.color = '#00adb5';
-    timerPanel.thickness = 2;
-    timerPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-    timerPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-    timerPanel.top = '10px';
-    timerPanel.left = '-10px';
-    gui.addControl(timerPanel);
-    timerText.fontSize = 24;
-    timerText.color = 'white';
-    timerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    timerText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    timerPanel.addControl(timerText);
-
-    // Bouton Click
     const clickBtn = Button.CreateSimpleButton('btnClick', 'Cliquez !');
-    clickBtn.width = '240px';
-    clickBtn.height = '120px';
-    clickBtn.cornerRadius = 30;
-    clickBtn.background = '#fff';
-    clickBtn.color = '#00adb5';
-    clickBtn.thickness = 4;
-    clickBtn.shadowColor = '#393e46cc';
-    clickBtn.shadowBlur = 18;
-    clickBtn.fontSize = 25;
-    clickBtn.fontFamily = 'DynaPuff';
-    clickBtn.top = '40%';
-    clickBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    clickBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    clickBtn.paddingTop = '30px';
-    clickBtn.paddingBottom = '30px';
-    clickBtn.paddingLeft = '10px';
-    clickBtn.paddingRight = '10px';
-    clickBtn.textBlock!.color = '#393e46';
-
+    styleButton(clickBtn);
     gui.addControl(clickBtn);
 
     let gameEnded = false;
+    const startTime = Date.now();
+    const endTime = startTime + duration * 1000;
 
     clickBtn.onPointerUpObservable.add(() => {
       if (gameEnded) return;
-      updateScore();
-      playerState.mesh.position.y += 0.12;
-      if (pivotNode) {
-        pivotNode.scaling.y += 0.001;
-      }
-      // Vérifier la victoire
-      if (score >= objectif) finishGame(true);
-    });
-
-    function updateScore() {
-      if (gameEnded || !pivotNode) return;
       score++;
       scoreText.text = `Score: ${score} / ${objectif}`;
-    }
+      charMesh.position.y += 0.12;
+      pivotNode.scaling.y += 0.001;
+      if (score >= objectif) finish(true);
+    });
 
-    // Fin du jeu
-    const finishGame = (win = false) => {
-      gameEnded = true;
-      clickBtn.isEnabled = false;
-
-      scoreUI.dispose();
-
-      const panel = new Rectangle('panel');
-      panel.width = '30%';
-      panel.height = '180px';
-      panel.cornerRadius = 20;
-      panel.background = '#dfe8ed';
-      panel.color = '#34acec';
-      panel.thickness = 4;
-      panel.shadowColor = '#34acec';
-      panel.shadowBlur = 8;
-      gui.addControl(panel);
-
-      const txt = new TextBlock('txt');
-      txt.text = win
-        ? `Bravo ! Tu as gagné !\nScore : ${score} / ${objectif}`
-        : `Partie terminée ! Tu as perdu ! \nScore : ${score} / ${objectif}`;
-      txt.textWrapping = true;
-      txt.fontFamily = 'DynaPuff';
-      txt.fontSize = 26;
-      txt.color = '#333b40';
-      txt.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-      txt.top = '-25%';
-      panel.addControl(txt);
-
-      const returnBtn = Button.CreateSimpleButton(
-        'btnReturn',
-        'Retour au plateau',
-      );
-      returnBtn.width = '300px';
-      returnBtn.height = '60px';
-      returnBtn.cornerRadius = 30;
-      returnBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-      returnBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
-      returnBtn.paddingBottom = '20px';
-      panel.addControl(returnBtn);
-      returnBtn.onPointerUpObservable.add(() => {
-        onMiniGameEnd({ name: 'ClickerGame', score: score });
-        cleanupScene();
-        sceneManager.switchTo('main');
-      });
-    };
-
-    // Timer du jeu
-    const start = Date.now();
-    const end = start + duration * 1000;
     scene.onBeforeRenderObservable.add(() => {
       if (gameEnded) return;
-      const remaining = Math.max(0, Math.floor((end - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
       timerText.text = `Temps : ${remaining}s`;
-      if (remaining <= 0) {
-        finishGame(score >= objectif);
-      }
+      if (remaining <= 0) finish(score >= objectif);
     });
-  };
 
-  if (!canPlay) {
-    const waitingGui = AdvancedDynamicTexture.CreateFullscreenUI(
-      'waitingUI',
+    function finish(win: boolean) {
+      gameEnded = true;
+      clickBtn.isEnabled = false;
+      showPopups(gui, [
+        win
+          ? `Bravo ! Tu as gagné !\nScore : ${score} / ${objectif}`
+          : `Partie terminée ! Tu as perdu !\nScore : ${score} / ${objectif}`,
+      ]).then(() => {
+        onMiniGameEnd({ name: 'ClickerGame', score });
+        resetClickerGame();
+        sceneManager.switchTo('main');
+      });
+    }
+  }
+
+  async function resetClickerGame() {
+    // Réinitialise score et positions
+    score = 0;
+    charMesh.position.y = initialCharY;
+    pivotNode.scaling.copyFrom(initialScaling);
+    rotationNode.rotation.set(0, Math.PI / 6, 0);
+    // Nettoie observables et UI existants
+    scene.onBeforeRenderObservable.clear();
+    // Affiche popup d'intro
+    const guiReset = AdvancedDynamicTexture.CreateFullscreenUI(
+      'resetUI',
       true,
       scene,
     );
-    const panel = new Rectangle('waitingPanel');
-    panel.width = '60%';
-    panel.height = '220px';
-    panel.cornerRadius = 20;
-    panel.background = '#dfe8ed';
-    panel.color = '#34acec';
-    panel.thickness = 4;
-    panel.shadowColor = '#34acec';
-    panel.shadowBlur = 8;
-    waitingGui.addControl(panel);
-
-    const infoText = new TextBlock(
-      'infoText',
-      "Clique sur “Cliquez !” le plus rapidement pour atteindre l'objectif en moins de 20 secondes.",
-    );
-    infoText.fontSize = 24;
-    infoText.color = '#333b40';
-    infoText.textWrapping = true;
-    infoText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    infoText.top = '-20%';
-    panel.addControl(infoText);
-
-    const startBtn = Button.CreateSimpleButton(
-      'btnStart',
-      'Commencer le mini‑jeu',
-    );
-    startBtn.width = '300px';
-    startBtn.height = '60px';
-    startBtn.cornerRadius = 30;
-    startBtn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    startBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_BOTTOM;
-    startBtn.paddingBottom = '20px';
-    panel.addControl(startBtn);
-
-    startBtn.onPointerUpObservable.add(() => {
-      waitingGui.dispose();
-      launchGame();
-    });
-  } else {
+    await showPopups(guiReset, [
+      'Nouvelle partie prête ! Clique pour débuter.',
+    ]);
     launchGame();
   }
+
+  // Démarrage
+  if (canPlay) {
+    launchGame();
+  } else {
+    showPopups(gui, [
+      `Clique sur 'Cliquez !' le plus rapidement possible pour atteindre l'objectif en moins de ${duration}s`,
+    ]).then(() => launchGame());
+  }
+}
+
+/**
+ * Crée et retourne un TextBlock dans un panneau GUI.
+ */
+function createTextPanel(
+  gui: AdvancedDynamicTexture,
+  text: string,
+  isLeft: boolean,
+): TextBlock {
+  const panel = new Rectangle();
+  panel.width = '200px';
+  panel.height = '60px';
+  panel.cornerRadius = 10;
+  panel.background = '#393e46';
+  panel.color = '#00adb5';
+  panel.thickness = 2;
+  panel.shadowColor = '#393e46cc';
+  panel.shadowBlur = 8;
+  panel.horizontalAlignment = isLeft
+    ? Control.HORIZONTAL_ALIGNMENT_LEFT
+    : Control.HORIZONTAL_ALIGNMENT_RIGHT;
+  panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  panel.left = isLeft ? '10px' : '0px';
+  // panel.right = isLeft ? '' : '10px';
+  panel.top = '10px';
+  gui.addControl(panel);
+
+  const tb = new TextBlock('', text);
+  tb.fontSize = 24;
+  tb.color = 'white';
+  tb.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  tb.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+  panel.addControl(tb);
+  return tb;
+}
+
+/**
+ * Applique un style cohérent à un button GUI.
+ */
+function styleButton(btn: Button) {
+  btn.width = '240px';
+  btn.height = '120px';
+  btn.cornerRadius = 30;
+  btn.background = '#fff';
+  btn.color = '#00adb5';
+  btn.thickness = 4;
+  btn.shadowColor = '#393e46cc';
+  btn.shadowBlur = 18;
+  btn.fontSize = 25;
+  btn.fontFamily = 'DynaPuff';
+  btn.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  btn.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+  btn.textBlock!.color = '#393e46';
 }

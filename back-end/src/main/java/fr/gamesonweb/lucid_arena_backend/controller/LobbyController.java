@@ -109,6 +109,10 @@ public class LobbyController {
         int currentPlayerIndex = state.getCurrentPlayer();
         // 4. Met à jour la position du joueur
         state.getPositions()[currentPlayerIndex] += dice;
+        if (state.getPositions()[currentPlayerIndex] >= state.getBoardTypes().size()) {
+            // Si le joueur dépasse la fin du plateau, il revient au début
+            state.getPositions()[currentPlayerIndex] = state.getPositions()[currentPlayerIndex] % state.getBoardTypes().size();
+        }
 
         // 5. Met à jour le joueur actuel
         //

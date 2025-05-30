@@ -170,6 +170,10 @@ export class BoardModule {
         .clone()
         .add(new Vector3(0, this.initialHeight, 0));
       this.currentIndices[playerIndex]++;
+      // si on dépasse le nombre de tuiles, on fait to 0
+      if (this.currentIndices[playerIndex] >= boardTiles.length) {
+        this.currentIndices[playerIndex] = 0;
+      }
       const to = boardTiles[this.currentIndices[playerIndex]]
         .clone()
         .add(new Vector3(0, this.initialHeight, 0));

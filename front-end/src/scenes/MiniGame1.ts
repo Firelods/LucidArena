@@ -14,14 +14,14 @@ import {
   EasingFunction,
 } from '@babylonjs/core';
 import {
-  AdvancedDynamicTexture, // pour l'UI fullscreen :contentReference[oaicite:0]{index=0}
+  AdvancedDynamicTexture,
   TextBlock,
   Control,
   Rectangle,
-  Button,
 } from '@babylonjs/gui';
 import { SceneManager } from '../engine/SceneManager';
 import { MiniGameResult } from '../hooks/useGameSocket';
+import { playerFiles, showPopups } from '../utils/utils';
 
 type PlayerState = {
   mesh: Mesh;
@@ -36,6 +36,8 @@ type Obstacle = {
   z: number;
 };
 
+const INITIAL_SPAWN_DELAY = 50; // unités Z à parcourir avant de voir un nuage
+
 export async function initMiniGame1(
   scene: Scene,
   canvas: HTMLCanvasElement,
@@ -43,7 +45,7 @@ export async function initMiniGame1(
   activePlayer: number,
   onMiniGameEnd: (result: MiniGameResult) => void,
 ) {
-  function resetGame() {
+  async function resetGame() {
     // Réinitialise positions du sol
     grounds.forEach((g, i) => {
       g.position.z = i * GROUND_DEPTH;
@@ -51,7 +53,7 @@ export async function initMiniGame1(
     // Réinitialise joueur
     players.forEach((p) => {
       p.lane = 0;
-      p.alive = true;
+      // p.alive = true;
       p.score = 0;
       p.mesh.position.set(0, 0, 2);
     });
@@ -60,11 +62,16 @@ export async function initMiniGame1(
     obstacles.length = 0;
     // Réinitialise progression
     zPosition = 2;
-    lastObstacleZ = zPosition;
+    lastObstacleZ = zPosition + INITIAL_SPAWN_DELAY;
     score = 0;
+    showPopups(gui, [
+      'Nouvelle partie de SkySurfer : évite les nuages !',
+      'Reste concentré·e, bonne chance !',
+    ]).then(() => {
+      players[0].alive = true; // Le joueur est prêt à jouer
+    });
   }
 
-  // --- INITIALISATION DE LA SCÈNE ---
   const camera = new ArcRotateCamera(
     'camera',
     0,
@@ -77,50 +84,10 @@ export async function initMiniGame1(
   const light = new HemisphericLight('light', new Vector3(0, 1, 0), scene);
   light.intensity = 1.0;
   const gui = AdvancedDynamicTexture.CreateFullscreenUI('UI', true, scene);
-  async function showPopups(messages: string[]): Promise<void> {
-    return new Promise((resolve) => {
-      let idx = 0;
-      const panel = new Rectangle('panel');
-      panel.width = '50%';
-      panel.height = '200px';
-      panel.cornerRadius = 20;
-      panel.background = '#dfe8ed';
-      panel.color = '#34acec';
-      panel.thickness = 4;
-      panel.shadowColor = '#34acec';
-      panel.shadowBlur = 8;
-      gui.addControl(panel);
-
-      const txt = new TextBlock('txt', '');
-      txt.textWrapping = true;
-      txt.fontFamily = 'DynaPuff';
-      txt.fontSize = 20;
-      txt.color = '#333b40';
-      panel.addControl(txt);
-
-      const btn = Button.CreateSimpleButton('btn', '➜');
-      btn.width = '50px';
-      btn.height = '50px';
-      btn.cornerRadius = 25;
-      btn.top = '55px';
-      panel.addControl(btn);
-
-      const next = () => {
-        if (idx >= messages.length) {
-          panel.dispose();
-          resolve();
-        } else {
-          txt.text = messages[idx++];
-        }
-      };
-      btn.onPointerUpObservable.add(next);
-      next();
-    });
-  }
   // Popups d'intro
-  await showPopups([
+  await showPopups(gui, [
     'Bienvenue dans SkySurfer !',
-    'Rester le plus longtemps possible sur la piste et éviter les nuages.',
+    'Rester le plus longtemps possible sur la piste et éviter les nuages avec les flèches du clavier.',
     "Attention, c'est parti !",
   ]);
   // 1) Affiche un compte à rebours avant de démarrer le jeu
@@ -141,12 +108,6 @@ export async function initMiniGame1(
     ground.material = mat;
     grounds.push(ground);
   }
-  const playerFiles = [
-    'character.glb',
-    'character_pink.glb',
-    'character_blue.glb',
-    'character_green.glb',
-  ];
 
   // Chargement de l’avatar
   await AppendSceneAsync(`/assets/${playerFiles[activePlayer]}`, scene);
@@ -158,10 +119,10 @@ export async function initMiniGame1(
 
   // --- ÉTAT DU JEU ---
   const players: PlayerState[] = [
-    { mesh: avatarMesh, lane: 0, alive: true, score: 0 },
+    { mesh: avatarMesh, lane: 0, alive: false, score: 0 },
   ];
   let zPosition = 2;
-  let lastObstacleZ = zPosition;
+  let lastObstacleZ = zPosition + INITIAL_SPAWN_DELAY; // pour éviter de spawn trop tôt
   const obstacles: Obstacle[] = [];
   // Chargement du nuage template
   await AppendSceneAsync('/assets/nuage.glb', scene);
@@ -212,7 +173,8 @@ export async function initMiniGame1(
     fromX = players[0].mesh.position.x;
     toX = players[0].lane * 3;
   };
-
+  await scene.whenReadyAsync(); // ou scene.executeWhenReady(() => Promise.resolve())
+  players[0].alive = true; // Le joueur est prêt à jouer
   // Boucle de rendu
   scene.onBeforeRenderObservable.add(() => {
     if (!players[0].alive) return;
@@ -250,20 +212,27 @@ export async function initMiniGame1(
         o.lane === players[0].lane
       ) {
         players[0].alive = false;
-        setTimeout(() => {
-          showPopups([
+
+        setTimeout(async () => {
+          // Popup de fin classique
+          await showPopups(gui, [
             'Tu as touché un nuage ! Ton score est de ' +
               Math.floor(score) +
               ' points',
             'Esperons que les autres renards ont été plus maladroits ! ',
-          ]).then(() => {
-            onMiniGameEnd({
-              name: 'mini1',
-              score: Math.floor(score),
-            });
-            resetGame();
-            sceneMgr.switchTo('main');
+          ]);
+
+          // Envoi du score au gestionnaire de partie
+          onMiniGameEnd({
+            name: 'mini1',
+            score: Math.floor(score),
           });
+
+          // Ré-initialisation + popups courtes + nouveau countdown
+          await resetGame();
+
+          // Retour au menu principal
+          sceneMgr.switchTo('main');
         }, 100);
       }
       if (o.mesh.position.z < zPosition - 10) {
