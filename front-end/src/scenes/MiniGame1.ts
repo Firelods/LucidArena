@@ -121,6 +121,7 @@ export async function initMiniGame1(
   await showPopups([
     'Bienvenue dans SkySurfer !',
     'Rester le plus longtemps possible sur la piste et éviter les nuages.',
+    'Utilisez les flèches gauche et droite pour changer de voie.',
     "Attention, c'est parti !",
   ]);
   // 1) Affiche un compte à rebours avant de démarrer le jeu

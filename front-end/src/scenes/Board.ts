@@ -46,7 +46,7 @@ export async function initBoard(
     scene,
   );
   scene.activeCamera = camera;
-  camera.attachControl(scene.getEngine().getRenderingCanvas()!, true);
+  camera.detachControl(); //
 
   // 2) Lumière
   new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
@@ -317,6 +317,42 @@ export async function initBoard(
   gui.addControl(rollBtn);
   rollBtn.onPointerUpObservable.add(() => rollDice());
 
+  // Prépare l’easing pour les animations de caméra
+  const camEase = new QuadraticEase();
+  camEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+
+  /**
+   * Déplace la caméra vers le joueur actif en douceur
+   */
+  function moveCameraToPlayer(playerIndex: number) {
+    const playerNode = boardMod.current!.getPlayerTransform(playerIndex);
+    const targetPos = playerNode.getAbsolutePosition();
+
+    Animation.CreateAndStartAnimation(
+      'cam-target',
+      camera,
+      'target',
+      30, // fps
+      60, // frames totales (~2s)
+      camera.target.clone(),
+      targetPos,
+      Animation.ANIMATIONLOOPMODE_CONSTANT,
+      camEase,
+    );
+  }
+
+  // 4) Boucle de rendu avec suivi du tour
+  let lastPlayerIndex = -1;
+  scene.onBeforeRenderObservable.add(() => {
+    const state = getGameState();
+    if (!state) return;
+
+    // Si on change de joueur, on anime la caméra
+    if (state.currentPlayer !== lastPlayerIndex) {
+      lastPlayerIndex = state.currentPlayer;
+      moveCameraToPlayer(lastPlayerIndex);
+    }
+  });
   // Texte du tour
   const playerTurnText = new TextBlock('turn', '');
   playerTurnText.color = '#333b40';
@@ -324,8 +360,8 @@ export async function initBoard(
   playerTurnText.fontSize = 20;
   playerTurnText.fontWeight = 'bold';
   playerTurnText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  playerTurnText.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  playerTurnText.top = '-180px';
+  playerTurnText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  playerTurnText.top = '80px';
   gui.addControl(playerTurnText);
 
   // Boucle de rendu
@@ -387,6 +423,11 @@ export async function initBoard(
   await showPopups([
     'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
     'À tour de rôle, affrontez-vous sur le plateau.',
+    'Lancez le dé pour avancer et collecter des étoiles.',
+    'Chaque couleur de case a un effet différent :',
+    '• Rose : mini-jeu solo \n • Violet : mini-jeu multijoueur',
+    '• Jaune : malus, perte d’une étoile \n • Bleu : bonus, gain d’une étoile',
+    'Retrouvez ces informations dans la légende à droite.',
     'Le premier à 5 étoiles remporte la partie !',
     'Bonne chance !',
   ]);

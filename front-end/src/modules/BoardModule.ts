@@ -235,4 +235,7 @@ export class BoardModule {
       this.updateTileGroup(tileIdx);
     });
   }
+  public getPlayerTransform(index: number): TransformNode {
+    return this.players[index];
+  }
 }
