@@ -135,7 +135,7 @@ public class LobbyService {
         }
         // if miniGame is a soloGame ("ClickerGame" or "rainingGame"), we only need one player
         if (miniGameName.equals("ClickerGame") ) {
-            return updateScoreMiniGameSolo(lobbyId, miniGameName, miniGameResult, 66);
+            return updateScoreMiniGameSolo(lobbyId, miniGameName, miniGameResult, 80);
         }
         if (miniGameName.equals("rainingGame")) {
             return updateScoreMiniGameSolo(lobbyId, miniGameName, miniGameResult, 10);
@@ -196,7 +196,7 @@ public class LobbyService {
         if (playerIndex != -1) {
             if( entry.getValue() < neededScore ) {
                 log.warning("Player " + playerNickname + " did not reach the needed score of " + neededScore);
-                return new GameController.MiniGameOutcomeDTO(miniGameName,entry.getKey(), entry.getValue()); // Player did not reach the needed score
+                return null; // Player did not reach the needed score
             }
             int currentScore = gameState.getScores()[playerIndex];
             gameState.getScores()[playerIndex] = currentScore + 1;
