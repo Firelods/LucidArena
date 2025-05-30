@@ -95,7 +95,7 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 ## 🛠️ 7. Technologies & architecture
 
 * **Front‑end** : React, Babylon.js, Blender (modèles 3D)
-* **Back‑end** : Java, Spring Boot
+* **Back‑end** : Spring Boot
 * **Communication** : WebSocket pour un échange en temps réel
 * **Organisation** : modules dédiés pour le plateau et chaque mini‑jeu, code propre et évolutif
 
