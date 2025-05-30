@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -36,6 +37,8 @@ public class AuthController {
     private String googleClientId;
     @Value("${spring.security.oauth2.resourceserver.jwt.secret}")
     private String jwtSecret;
+
+    private final RestTemplate restTemplate;
 
     @PostMapping("/google")
     public ResponseEntity<?> authenticateWithGoogle(@RequestBody Map<String, String> payload) throws GeneralSecurityException, IOException {
@@ -80,9 +83,6 @@ public class AuthController {
                 email, java.time.Instant.now().toString());
     
         Map<String, String> json = Map.of("content", content);
-    
-        // Envoie la requête POST à Discord
-        org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
         try {
             restTemplate.postForEntity(webhookUrl, json, String.class);
         } catch (Exception e) {
