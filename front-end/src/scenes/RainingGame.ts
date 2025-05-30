@@ -237,7 +237,10 @@ export function initRainingGame(
         const lane = LANES[Math.floor(Math.random() * LANES.length)];
 
         const proto = preloaded[file];
-        const inst = proto.clone(`inst_${file}_${Date.now()}`) as AbstractMesh;
+        const inst = proto.clone(
+          `inst_${file}_${Date.now()}`,
+          null,
+        ) as AbstractMesh;
         inst.position = new Vector3(lane * LANE_WIDTH, SPAWN_HEIGHT, 0);
         inst.scaling = new Vector3(OBJECT_SCALE, OBJECT_SCALE, OBJECT_SCALE);
         inst.setEnabled(true);
