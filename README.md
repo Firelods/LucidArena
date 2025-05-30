@@ -16,7 +16,7 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 
 ## 💡 2. Contexte et motivations
 
-* **Origine du projet** : Partager un moment ludique et collaboratif dans un cadre onirique, accessible depuis n’importe quel navigateur.
+* **Origine du projet** : Partager un moment ludique et collaboratif dans un cadre onirique, accessible depuis le web (Chrome, Edge).
 * **Objectifs** :
 
   * **Techniques** : maîtriser le déploiement web, la modélisation 3D avec **Blender**, le développement en **React** et la communication via **WebSocket**.
