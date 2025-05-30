@@ -209,6 +209,12 @@ public class LobbyService {
         if (playerIndex != -1) {
             if (entry.getValue() < neededScore) {
                 log.warning("Player " + playerNickname + " did not reach the needed score of " + neededScore);
+                if (gameState.getCurrentPlayer() == gameState.getPlayers().size()) {
+                    gameState.setCurrentPlayer(0); // Recommence au premier joueur
+                }
+                gameState.setCurrentPlayer(gameState.getCurrentPlayer() + 1);
+                messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
+
                 return null; // Player did not reach the needed score
             }
             int currentScore = gameState.getScores()[playerIndex];
