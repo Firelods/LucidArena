@@ -72,8 +72,7 @@ const GameScene = () => {
     console.log('GameState: ', gameState);
     console.log('sceneMgr: ', sceneMgr);
     console.log(`createdScenesRef: ${createdScenesRef.current}`);
-    if (!sceneMgr || !gameState || (createdScenesRef.current && introDone))
-      return;
+    if (!sceneMgr || !gameState || createdScenesRef.current) return;
     console.log(`Creating scenes for gameState: ${JSON.stringify(gameState)}`);
 
     createdScenesRef.current = true;
@@ -93,8 +92,6 @@ const GameScene = () => {
         rollDice,
         nickname,
         gameState.players.length,
-        playerIdx,
-        sceneMgr,
       );
     });
 
@@ -136,12 +133,15 @@ const GameScene = () => {
       );
       initEndGaming(scene, sceneMgr, playerIdx);
     });
-
-    // Démarrage de la boucle et affichage de la scène principale
-    sceneMgr.run();
-    // Bascule vers la scène principale
-    sceneMgr.switchTo('main');
   }, [gameState]);
+
+  useEffect(() => {
+    const sceneMgr = sceneMgrRef.current;
+    if (sceneMgr && introDone && createdScenesRef.current) {
+      // 1) On bascule vers la scène principale
+      sceneMgr.switchTo('main');
+    }
+  }, [introDone]);
 
   // 3) On ne lance le mini-jeu qu'après la fin de la file d'animations
   useEffect(() => {
@@ -217,10 +217,14 @@ const GameScene = () => {
       }
       // 2.a) Animer chaque pion là où il doit aller
       for (let i = 0; i < nextPos.length; i++) {
+        // calculer le nombre de pas à faire en fonction de la position précédente avec lat
         const steps = (nextPos[i] || 0) - (prevPos[i] || 0);
-        if (steps > 0) {
+        if (steps != 0) {
           console.log(
             `Déplacement joueur ${i} de ${prevPos[i]} à ${nextPos[i]} (${steps} pas)`,
+          );
+          setStatus(
+            `Joueur ${gameState.players[i].nickname} avance de ${steps} pas`,
           );
           await boardMod.current.movePlayer(i, steps);
           console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
@@ -234,7 +238,12 @@ const GameScene = () => {
           if (newScores[i] > lastScores[i]) {
             // on a un gagnant
             const player = gameState.players[i];
-            setStatus(`${player.nickname} a gagné un point !`);
+            setStatus(`${player.nickname} a gagné un point !`);
+          }
+          if (newScores[i] < lastScores[i]) {
+            // on a un perdant
+            const player = gameState.players[i];
+            setStatus(`${player.nickname} a perdu un point !`);
           }
         }
       }

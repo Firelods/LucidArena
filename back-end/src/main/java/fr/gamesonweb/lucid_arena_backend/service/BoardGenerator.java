@@ -12,7 +12,7 @@ public class BoardGenerator {
     private final Random random = new Random();
     // mêmes poids que votre front : 25% multi, 25% solo, 20% bonus, 30% malus
     private final List<String> types = List.of("multi","solo","bonus","malus");
-    private final List<Double> cumulative = List.of(0.25, 0.50, 0.70, 1.0);
+    private final List<Double> cumulative = List.of(0.30, 0.60, 0.85, 1.0);
 
     public List<String> generate(int tileCount) {
         List<String> result = new ArrayList<>(tileCount);
