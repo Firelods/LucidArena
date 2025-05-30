@@ -131,10 +131,10 @@ const GameScene = () => {
     sceneMgr.createScene('endScene', (scene) => {
       importSkyBox(scene);
       // Recherche l'indice du gagnant
-      const playerIdx = gameState.players.findIndex(
-        (p) => p.nickname === nickname,
+      const winnerIdx = gameState.players.findIndex(
+        (p) => p.nickname === gameState.winner,
       );
-      initEndGaming(scene, sceneMgr, playerIdx);
+      initEndGaming(scene, sceneMgr, winnerIdx);
     });
 
     // Démarrage de la boucle et affichage de la scène principale

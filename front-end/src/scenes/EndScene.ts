@@ -8,7 +8,13 @@ import {
   PBRMaterial,
   Color3,
 } from '@babylonjs/core';
-import { AdvancedDynamicTexture, Control, Image } from '@babylonjs/gui';
+import {
+  AdvancedDynamicTexture,
+  Control,
+  Image,
+  Rectangle,
+  TextBlock,
+} from '@babylonjs/gui';
 import { SceneManager } from '../engine/SceneManager';
 import { playerFiles } from '../utils/utils';
 
