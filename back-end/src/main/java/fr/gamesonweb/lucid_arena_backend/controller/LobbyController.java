@@ -5,6 +5,7 @@ import fr.gamesonweb.lucid_arena_backend.dto.ListPlayerJoinDTO;
 import fr.gamesonweb.lucid_arena_backend.dto.MiniGameInstructionDTO;
 import fr.gamesonweb.lucid_arena_backend.dto.PlayerJoinDTO;
 import fr.gamesonweb.lucid_arena_backend.entity.GameState;
+import fr.gamesonweb.lucid_arena_backend.entity.PlayerProfile;
 import fr.gamesonweb.lucid_arena_backend.repository.PlayerProfileRepository;
 import fr.gamesonweb.lucid_arena_backend.service.LobbyService;
 import lombok.AllArgsConstructor;
@@ -135,13 +136,22 @@ public class LobbyController {
             }
         }
 
+        PlayerProfile profile = lobbyService.checkIfEndGame(lobbyId);
+        state.setWinner(profile != null ? profile.getNickname() : null);
         lobbyService.setGameState(lobbyId, state);
         // 6. Broadcast à tous dans la room
         messagingTemplate.convertAndSend("/topic/game/" + lobbyId, state);
 
         if (!miniGame.isEmpty()) {
             MiniGameInstructionDTO instr = new MiniGameInstructionDTO(
-                     tileType.equals("multi") ? null : nickname, miniGame);
+                    tileType.equals("multi") ? null : nickname, miniGame);
+            // delay by 1 second the sending of the instruction
+            try {
+                Thread.sleep(1000); // Simule un délai de 1 seconde
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restore interrupted status
+                log.warning("Thread interrupted while sleeping: " + e.getMessage());
+            }
             messagingTemplate.convertAndSend(
                     "/topic/game/" + lobbyId + "/minigame/instruction",
                     instr);
