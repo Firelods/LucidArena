@@ -47,7 +47,7 @@ export async function initBoard(
     scene,
   );
   scene.activeCamera = camera;
-  camera.detachControl(); //
+  camera.attachControl(scene.getEngine().getRenderingCanvas()!, true, true);
 
   // 2) Lumière
   new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
