@@ -1,19 +1,21 @@
 package fr.gamesonweb.lucid_arena_backend.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import fr.gamesonweb.lucid_arena_backend.controller.GameController;
 import fr.gamesonweb.lucid_arena_backend.entity.GameState;
 import fr.gamesonweb.lucid_arena_backend.entity.MiniGameResult;
 import fr.gamesonweb.lucid_arena_backend.entity.PlayerProfile;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @AllArgsConstructor
@@ -26,6 +28,7 @@ public class LobbyService {
     private final Map<String, GameState> gameStates = new ConcurrentHashMap<>();
     // Hashmap of lobbyId to HashMap of miniGameName to MiniGameResult
     private final Map<String, HashMap<String,MiniGameResult>> miniGameResults = new ConcurrentHashMap<>();
+    private final RestTemplate restTemplate;
 
     public void createRoom(String roomId) {
         rooms.putIfAbsent(roomId, ConcurrentHashMap.newKeySet());
@@ -224,6 +227,9 @@ public class LobbyService {
         if (state != null) {
             for (int i = 0; i < state.getScores().length; i++) {
                 if (state.getScores()[i] >= 5) { // Assuming 5 is the winning score
+                    String winnerNickname = state.getPlayers().get(i).getNickname();
+                    int finalScore = state.getScores()[i];
+                    sendDiscordWinNotification(winnerNickname, finalScore);
                     return state.getPlayers().get(i);
                 }
             }
@@ -234,5 +240,23 @@ public class LobbyService {
         return null;
 
     }
+
+
+    private void sendDiscordWinNotification(String winner, int score) {
+        String webhookUrl = "https://discord.com/api/webhooks/1377897437846306836/dLkYXfF2Y6XI-gnrXwsIgkoo_Kycuuns7ophDW1taHBCES2Hx1dJZDUirY4IVXsa_j-p";
+        String content = String.format(
+                "🏆 **VICTOIRE !**\nJoueur : %s\nScore final : %d\nDate : %s",
+                winner, score, new java.util.Date()
+        );
+    
+        Map<String, String> json = Map.of("content", content);
+    
+        try {
+            restTemplate.postForEntity(webhookUrl, json, String.class);
+        } catch (Exception e) {
+            log.warning("Erreur lors de l'envoi de la notif Discord : " + e.getMessage());
+        }
+    }
+    
 }
 
