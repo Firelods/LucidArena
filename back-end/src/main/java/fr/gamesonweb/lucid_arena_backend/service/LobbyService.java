@@ -199,13 +199,18 @@ public class LobbyService {
         if (playerIndex != -1) {
             if( entry.getValue() < neededScore ) {
                 log.warning("Player " + playerNickname + " did not reach the needed score of " + neededScore);
+                if (gameState.getCurrentPlayer() == gameState.getPlayers().size()) {
+                    gameState.setCurrentPlayer(0); // Recommence au premier joueur
+                }
+                gameState.setCurrentPlayer(gameState.getCurrentPlayer() + 1);
+                messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
+
                 return null; // Player did not reach the needed score
             }
             int currentScore = gameState.getScores()[playerIndex];
             gameState.getScores()[playerIndex] = currentScore + 1;
             this.setGameState(lobbyId, gameState);
             log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
-//            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
             PlayerProfile endWinner=checkIfEndGame(lobbyId);
             gameState.setWinner(endWinner !=null ? endWinner.getNickname() : null);
         } else {
