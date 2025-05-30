@@ -24,6 +24,7 @@ import { GameStateDTO } from '../dto/GameStateDTO';
 import { isItMyTurn } from '../hooks/useGameSocket';
 import { SceneManager } from '../engine/SceneManager';
 import { Inspector } from '@babylonjs/inspector';
+import { showPopups } from '../utils/utils';
 
 export async function initBoard(
   scene: Scene,
@@ -106,48 +107,6 @@ export async function initBoard(
     anim.onAnimationEndObservable.addOnce(() => res()),
   );
   slideUI.dispose();
-
-  // Popups
-  async function showPopups(messages: string[]): Promise<void> {
-    return new Promise((resolve) => {
-      let idx = 0;
-      const panel = new Rectangle();
-      panel.width = '50%';
-      panel.height = '200px';
-      panel.cornerRadius = 20;
-      panel.background = '#dfe8ed';
-      panel.color = '#34acec';
-      panel.thickness = 4;
-      panel.shadowColor = '#34acec';
-      panel.shadowBlur = 8;
-      gui.addControl(panel);
-
-      const txt = new TextBlock();
-      txt.textWrapping = true;
-      txt.fontFamily = 'DynaPuff';
-      txt.fontSize = 20;
-      txt.color = '#333b40';
-      panel.addControl(txt);
-
-      const btn = Button.CreateSimpleButton('btn', '➜');
-      btn.width = '50px';
-      btn.height = '50px';
-      btn.cornerRadius = 25;
-      btn.top = '55px';
-      panel.addControl(btn);
-
-      const next = () => {
-        if (idx >= messages.length) {
-          panel.dispose();
-          resolve();
-        } else {
-          txt.text = messages[idx++];
-        }
-      };
-      btn.onPointerUpObservable.add(next);
-      next();
-    });
-  }
 
   // --- SCOREBOARD RESPONSIVE ---
   const scorePanel = new Rectangle('scorePanel');
@@ -329,8 +288,6 @@ export async function initBoard(
   gui.addControl(playerTurnText);
 
   // Boucle de rendu
-  let lastPositions: number[] = [];
-  let lastDice: number | null = null;
   let currentPlayerIndex = -1;
   let isMyTurn = false;
   scene.onBeforeRenderObservable.add(async () => {
@@ -349,42 +306,10 @@ export async function initBoard(
     }`;
     playerTurnText.color = isMyTurn ? '#AA5042' : '#333b40';
     rollBtn.isVisible = isMyTurn;
-
-    // // --- 4. Animations de déplacement pas à pas ---
-    // if (!lastPositions.length) {
-    //   // initialisation de lastPositions la première fois
-    //   lastPositions = [...state.positions];
-    //   console.log(`Positions initiales: ${lastPositions}`);
-    //   await boardMod.current.setPositions(state.positions);
-    // } else {
-    //   for (let i = 0; i < state.positions.length; i++) {
-    //     const oldIdx = lastPositions[i];
-    //     const newIdx = state.positions[i];
-    //     const steps = newIdx - oldIdx;
-    //     if (steps > 0) {
-    //       // fait sauter le pion 'steps' fois
-    //       console.log(
-    //         `Déplacement joueur ${i} de ${oldIdx} à ${newIdx} (${steps} pas)`,
-    //       );
-    //       lastPositions[i] = newIdx;
-    //       await boardMod.current.movePlayer(i, steps);
-    //     }
-    //   }
-    //   lastPositions = [...state.positions];
-    // }
-    // --- 5. Animation du dé si valeur a changé ---
-    // if (state.lastDiceRoll && state.lastDiceRoll !== lastDice) {
-    //   console.log(`Lancer de dé: ${state.lastDiceRoll}`);
-
-    //   lastDice = state.lastDiceRoll;
-    //   await diceMod.current.show();
-    //   await diceMod.current.roll(lastDice);
-    //   await diceMod.current.hide();
-    // }
   });
 
   // Popup de bienvenue
-  await showPopups([
+  await showPopups(gui, [
     'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
     'À tour de rôle, affrontez-vous sur le plateau.',
     'Le premier à 5 étoiles remporte la partie !',
