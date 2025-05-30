@@ -270,6 +270,42 @@ export async function initBoard(
   gui.addControl(rollBtn);
   rollBtn.onPointerUpObservable.add(() => rollDice());
 
+  // Prépare l’easing pour les animations de caméra
+  const camEase = new QuadraticEase();
+  camEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
+
+  /**
+   * Déplace la caméra vers le joueur actif en douceur
+   */
+  function moveCameraToPlayer(playerIndex: number) {
+    const playerNode = boardMod.current!.getPlayerTransform(playerIndex);
+    const targetPos = playerNode.getAbsolutePosition();
+
+    Animation.CreateAndStartAnimation(
+      'cam-target',
+      camera,
+      'target',
+      30, // fps
+      60, // frames totales (~2s)
+      camera.target.clone(),
+      targetPos,
+      Animation.ANIMATIONLOOPMODE_CONSTANT,
+      camEase,
+    );
+  }
+
+  // 4) Boucle de rendu avec suivi du tour
+  let lastPlayerIndex = -1;
+  scene.onBeforeRenderObservable.add(() => {
+    const state = getGameState();
+    if (!state) return;
+
+    // Si on change de joueur, on anime la caméra
+    if (state.currentPlayer !== lastPlayerIndex) {
+      lastPlayerIndex = state.currentPlayer;
+      moveCameraToPlayer(lastPlayerIndex);
+    }
+  });
   // Texte du tour
   const playerTurnText = new TextBlock('turn', '');
   playerTurnText.color = '#333b40';

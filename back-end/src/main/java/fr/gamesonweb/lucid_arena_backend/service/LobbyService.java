@@ -16,6 +16,14 @@ import fr.gamesonweb.lucid_arena_backend.entity.MiniGameResult;
 import fr.gamesonweb.lucid_arena_backend.entity.PlayerProfile;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @AllArgsConstructor
@@ -54,7 +62,7 @@ public class LobbyService {
 
     private GameState createInitialGameState(String roomId) {
         GameState state = new GameState();
-        List <String> players = List.copyOf(rooms.get(roomId));
+        List<String> players = List.copyOf(rooms.get(roomId));
         if (players.isEmpty()) {
             throw new IllegalStateException("No players in the room to initialize game state.");
         }
@@ -137,7 +145,7 @@ public class LobbyService {
             return null; // No results for this mini game
         }
         // if miniGame is a soloGame ("ClickerGame" or "rainingGame"), we only need one player
-        if (miniGameName.equals("ClickerGame") ) {
+        if (miniGameName.equals("ClickerGame")) {
             return updateScoreMiniGameSolo(lobbyId, miniGameName, miniGameResult, 80);
         }
         if (miniGameName.equals("rainingGame")) {
@@ -171,10 +179,10 @@ public class LobbyService {
             state.setCurrentPlayer(0); // Recommence au premier joueur
         }
         this.setGameState(lobbyId, state);
-        PlayerProfile endWinner=checkIfEndGame(lobbyId);
+        PlayerProfile endWinner = checkIfEndGame(lobbyId);
         resetMinigameResult(lobbyId, miniGameName);
 
-        state.setWinner(endWinner !=null ? endWinner.getNickname() : null);
+        state.setWinner(endWinner != null ? endWinner.getNickname() : null);
         messaging.convertAndSend("/topic/game/" + lobbyId, state);
 
 
@@ -199,7 +207,7 @@ public class LobbyService {
                 .toList()
                 .indexOf(playerNickname);
         if (playerIndex != -1) {
-            if( entry.getValue() < neededScore ) {
+            if (entry.getValue() < neededScore) {
                 log.warning("Player " + playerNickname + " did not reach the needed score of " + neededScore);
                 return null; // Player did not reach the needed score
             }
@@ -208,8 +216,8 @@ public class LobbyService {
             this.setGameState(lobbyId, gameState);
             log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
 //            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
-            PlayerProfile endWinner=checkIfEndGame(lobbyId);
-            gameState.setWinner(endWinner !=null ? endWinner.getNickname() : null);
+            PlayerProfile endWinner = checkIfEndGame(lobbyId);
+            gameState.setWinner(endWinner != null ? endWinner.getNickname() : null);
         } else {
             log.warning("Player " + playerNickname + " not found in game state for lobby " + lobbyId);
         }
@@ -236,8 +244,6 @@ public class LobbyService {
                 }
             }
         }
-        this.setGameState(lobbyId, state);
-        messaging.convertAndSend("/topic/game/" + lobbyId, state);
 
         return null;
 
@@ -250,15 +256,15 @@ public class LobbyService {
                 "🏆 **VICTOIRE !**\nJoueur : %s\nScore final : %d\nDate : %s",
                 winner, score, new java.util.Date()
         );
-    
+
         Map<String, String> json = Map.of("content", content);
-    
+
         try {
             restTemplate.postForEntity(webhookUrl, json, String.class);
         } catch (Exception e) {
             log.warning("Erreur lors de l'envoi de la notif Discord : " + e.getMessage());
         }
     }
-    
+
 }
 
