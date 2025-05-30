@@ -77,7 +77,7 @@ public class AuthController {
     private void sendDiscordNotification(String email) {
         String webhookUrl = "https://discord.com/api/webhooks/1377876420075847862/fkVlUXgGTwA8-d1SF0yzGSlcTnQu3yRgGSZWq0ZHQDFhCibc4ueggrAcbJ_0Mka8vAfj"; // <-- Mets ici ton URL Discord
         String content = String.format("👤 **Nouvelle connexion !**\nEmail : %s\nHeure : %s",
-                email, new java.util.Date());
+                email, java.time.Instant.now().toString());
     
         Map<String, String> json = Map.of("content", content);
     
