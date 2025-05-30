@@ -1,13 +1,15 @@
 package fr.gamesonweb.lucid_arena_backend.auth;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +18,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.crypto.SecretKey;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -58,6 +61,10 @@ public class AuthController {
                     .compact();
 
 
+            // Envoi d'une notification Discord
+            sendDiscordNotification(email);
+
+
             Map<String, Object> response = new HashMap<>();
             response.put("jwt", jwt);
             response.put("user", Map.of("email", email));
@@ -66,4 +73,21 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid ID token.");
         }
     }
+
+    private void sendDiscordNotification(String email) {
+        String webhookUrl = "https://discord.com/api/webhooks/1377876420075847862/fkVlUXgGTwA8-d1SF0yzGSlcTnQu3yRgGSZWq0ZHQDFhCibc4ueggrAcbJ_0Mka8vAfj"; // <-- Mets ici ton URL Discord
+        String content = String.format("👤 **Nouvelle connexion !**\nEmail : %s\nHeure : %s",
+                email, new java.util.Date());
+    
+        Map<String, String> json = Map.of("content", content);
+    
+        // Envoie la requête POST à Discord
+        org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+        try {
+            restTemplate.postForEntity(webhookUrl, json, String.class);
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'envoi de la notif Discord : " + e.getMessage());
+        }
+    }
+    
 }
