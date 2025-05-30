@@ -19,7 +19,11 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 * **Origine du projet** : Partager un moment ludique et collaboratif dans un cadre onirique, accessible depuis le web (Chrome, Edge).
 * **Objectifs** :
 
-  * **Techniques** : maîtriser le déploiement web, la modélisation 3D avec **Blender**, le développement en **React** et la communication via **WebSocket**.
+  * **Techniques** :
+    - maîtriser le déploiement web et l’intégration de modèles 3D créés avec Blender dans une application front‑end réalisée avec React et Babylon.js.
+    - Concevoir un back‑end robuste en Java avec Spring Boot.
+    - Implémenter la communication en temps réel grâce à WebSocket.
+    - Structurer le projet en modules dédiés (plateau, mini‑jeux) pour assurer la maintenabilité et l’évolutivité du code.
   * **Ludiques** : créer une mécanique simple, dynamique et riche en rebondissements.
   * **Pédagogiques** : renforcer nos compétences front‑end et back‑end tout en s’amusant.
 
@@ -84,14 +88,14 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 
 * **Gain/perte** d’étoiles à chaque interaction avec une case ou un mini‑jeu.
 * **Stratégie** : gérer son avancée pour maximiser bonus et minimiser malus.
-* **Fin de partie** : premier à 10 étoiles → champion de la **Lucid Cup**.
+* **Fin de partie** : premier à 5 étoiles → champion de la **Lucid Cup**.
 
 ---
 
 ## 🛠️ 7. Technologies & architecture
 
 * **Front‑end** : React, Babylon.js, Blender (modèles 3D)
-* **Back‑end** : Java, Spring WebSocket
+* **Back‑end** : Java, Spring Boot
 * **Communication** : WebSocket pour un échange en temps réel
 * **Organisation** : modules dédiés pour le plateau et chaque mini‑jeu, code propre et évolutif
 
@@ -99,26 +103,13 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 
 ## 📥 8. Installation & prise en main
 
-1. **Prérequis** :
-
-   * Node.js >=14, Java >=11
-2. **Installation** :
-
    ```bash
-   git clone https://github.com/votre-org/lucid-arena.git
-   cd lucid-arena
-   cd frontend && npm install
-   cd ../backend && mvn install
+   git clone https://github.com/Firelods/LucidArena.git
+   cd LucidArena
+   docker network create proxy_net
+   docker compose up -d
    ```
-3. **Configuration** :
-
-   * Définir les variables d’environnement (OAuth Google, ports…)
-4. **Lancement en local** :
-
-   * `npm start` (front)
-   * `mvn spring-boot:run` (back)
-5. **Déploiement** : guide de configuration pour serveur cloud (ex. Heroku, AWS)
-
+Une fois ces commandes exécutées, l’application sera accessible depuis votre navigateur à l’adresse suivante : http://localhost:3000.
 ---
 
 ## 🤝 9. Contribution
@@ -126,7 +117,7 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 Nous accueillons vos idées et contributions ! 🙌
 
 * **Fork** le dépôt, créez une **branche**, puis proposez une **Pull Request**.
-* Respectez le **guide de style** et ajoutez des **tests unitaires**.
+* Respectez le **guide de style**.
 
 ---
 
