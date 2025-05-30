@@ -319,8 +319,8 @@ export async function initBoard(
   playerTurnText.fontSize = 20;
   playerTurnText.fontWeight = 'bold';
   playerTurnText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-  playerTurnText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  playerTurnText.top = '80px';
+  playerTurnText.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  playerTurnText.top = '-180px';
   gui.addControl(playerTurnText);
 
   // Boucle de rendu
