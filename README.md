@@ -49,7 +49,7 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
 
    * Le joueur actif lance un **dé virtuel** et avance de 1 à 6 cases.
    * Selon la **couleur** de la case : mini‑jeu solo/multijoueur ou modification du compte d’étoiles.
-3. **Conditions de victoire** : le premier joueur à atteindre **10 étoiles** remporte la **Lucid Cup** ! 🏆
+3. **Conditions de victoire** : le premier joueur à atteindre **5 étoiles** remporte la **Lucid Cup** ! 🏆
 
 > **Astuce** : Les cases bleues sont vos meilleures alliées, mais les cases jaunes peuvent inverser le cours du jeu… 😈
 
@@ -109,7 +109,7 @@ Bienvenue dans **Lucid Arena**, un **jeu de plateau en ligne** immersif et color
    docker network create proxy_net
    docker compose up -d
    ```
-Une fois ces commandes exécutées, l’application sera accessible depuis votre navigateur à l’adresse suivante : http://localhost:3000.
+* Une fois ces commandes exécutées, l’application sera accessible depuis votre navigateur à l’adresse suivante : http://localhost:3000.
 ---
 
 ## 🤝 9. Contribution
