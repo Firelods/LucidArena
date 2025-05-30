@@ -74,7 +74,6 @@ export async function initIntroScene(
   // 8) Lancer et, à la fin, switcher puis disposer l’UI
   const anim = scene.beginAnimation(cloud, 0, 60, false, 1);
   anim.onAnimationEndObservable.addOnce(() => {
-    // 1) on passe à la scène "main" immédiatement
     // 2) on attend le prochain cycle de rendu avant de retirer l’UI
     setTimeout(() => ui.dispose(), 0);
   });
