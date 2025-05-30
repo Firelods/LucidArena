@@ -172,6 +172,8 @@ public class LobbyService {
         }
         this.setGameState(lobbyId, state);
         PlayerProfile endWinner=checkIfEndGame(lobbyId);
+        resetMinigameResult(lobbyId, miniGameName);
+
         state.setWinner(endWinner !=null ? endWinner.getNickname() : null);
         messaging.convertAndSend("/topic/game/" + lobbyId, state);
 

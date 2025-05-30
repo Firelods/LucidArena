@@ -24,7 +24,7 @@ import { GameStateDTO } from '../dto/GameStateDTO';
 import { isItMyTurn } from '../hooks/useGameSocket';
 import { SceneManager } from '../engine/SceneManager';
 import { Inspector } from '@babylonjs/inspector';
-import { showPopups } from '../utils/utils';
+import { playerColors, showPopups } from '../utils/utils';
 
 export async function initBoard(
   scene: Scene,
@@ -34,8 +34,6 @@ export async function initBoard(
   rollDice: () => void,
   nickname: string,
   playerCount: number,
-  currentPlayer: number,
-  sceneMgr: SceneManager,
 ): Promise<void> {
   // 1) Caméra
   const camera = new ArcRotateCamera(
@@ -51,10 +49,6 @@ export async function initBoard(
 
   // 2) Lumière
   new HemisphericLight('light', new Vector3(0, 1, 0), scene).intensity = 0.8;
-  // Inspector.Show(scene, { embedMode: true });
-  // —————————————
-  // Début de la Board Scene
-  // —————————————
 
   // 3) Modules Plateau et Dé
   boardMod.current = new BoardModule(scene);
@@ -92,7 +86,7 @@ export async function initBoard(
   const slideAnim = new Animation(
     'slideCloud',
     'left',
-    30,
+    60,
     Animation.ANIMATIONTYPE_FLOAT,
     Animation.ANIMATIONLOOPMODE_CONSTANT,
   );
@@ -135,7 +129,7 @@ export async function initBoard(
     cell.cornerRadius = 8;
     cell.thickness = 2;
     cell.color = '#fff';
-    cell.background = ['#f39c12', '#e91e63', '#3498db', '#2ecc71'][i];
+    cell.background = playerColors[i];
     cell.paddingLeft = '8px';
     cell.paddingRight = '8px';
     cell.paddingTop = '5px';
@@ -284,7 +278,8 @@ export async function initBoard(
   playerTurnText.fontWeight = 'bold';
   playerTurnText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
   playerTurnText.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-  playerTurnText.top = '-180px';
+  playerTurnText.top = '100px';
+  playerTurnText.resizeToFit = true;
   gui.addControl(playerTurnText);
 
   // Boucle de rendu
@@ -312,6 +307,11 @@ export async function initBoard(
   await showPopups(gui, [
     'Bienvenue dans LucidArena ! Prêt·e pour l’aventure ?',
     'À tour de rôle, affrontez-vous sur le plateau.',
+    'Lancez le dé pour avancer et collecter des étoiles.',
+    'Chaque couleur de case a un effet différent :',
+    '• Rose : mini-jeu solo \n • Violet : mini-jeu multijoueur',
+    '• Jaune : malus, perte d’une étoile \n • Bleu : bonus, gain d’une étoile',
+    'Retrouvez ces informations dans la légende à droite.',
     'Le premier à 5 étoiles remporte la partie !',
     'Bonne chance !',
   ]);

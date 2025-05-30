@@ -142,6 +142,13 @@ public class LobbyController {
         if (!miniGame.isEmpty()) {
             MiniGameInstructionDTO instr = new MiniGameInstructionDTO(
                      tileType.equals("multi") ? null : nickname, miniGame);
+            // delay by 1 second the sending of the instruction
+            try {
+                Thread.sleep(1000); // Simule un délai de 1 seconde
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restore interrupted status
+                log.warning("Thread interrupted while sleeping: " + e.getMessage());
+            }
             messagingTemplate.convertAndSend(
                     "/topic/game/" + lobbyId + "/minigame/instruction",
                     instr);
