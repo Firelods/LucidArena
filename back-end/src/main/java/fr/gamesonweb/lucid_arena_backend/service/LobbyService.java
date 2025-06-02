@@ -35,7 +35,7 @@ public class LobbyService {
     private final Map<String, Set<String>> rooms = new ConcurrentHashMap<>();
     private final Map<String, GameState> gameStates = new ConcurrentHashMap<>();
     // Hashmap of lobbyId to HashMap of miniGameName to MiniGameResult
-    private final Map<String, HashMap<String,MiniGameResult>> miniGameResults = new ConcurrentHashMap<>();
+    private final Map<String, HashMap<String, MiniGameResult>> miniGameResults = new ConcurrentHashMap<>();
     private final RestTemplate restTemplate;
 
     public void createRoom(String roomId) {
@@ -174,15 +174,12 @@ public class LobbyService {
                     state.getScores()[playerIndex] += 1; // Increment the score of the winning player
                 });
 
-        state.setCurrentPlayer(state.getCurrentPlayer() + 1);
-        if (state.getCurrentPlayer() == state.getPlayers().size()) {
-            state.setCurrentPlayer(0); // Recommence au premier joueur
-        }
-        this.setGameState(lobbyId, state);
+        incrementCurrentPlayerOrReset(lobbyId, state);
         PlayerProfile endWinner = checkIfEndGame(lobbyId);
         resetMinigameResult(lobbyId, miniGameName);
 
         state.setWinner(endWinner != null ? endWinner.getNickname() : null);
+        this.setGameState(lobbyId, state);
         messaging.convertAndSend("/topic/game/" + lobbyId, state);
 
 
@@ -196,11 +193,8 @@ public class LobbyService {
             String miniGameName,
             MiniGameResult miniGameResult,
             int neededScore) {
-        // Get the only player who submitted a result
         Map.Entry<String, Integer> entry = miniGameResult.getPlayerScores().entrySet().iterator().next();
         String playerNickname = entry.getKey();
-        //.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
-        // add 1 to the score of the player in the gameState
         GameState gameState = getGameState(lobbyId);
         int playerIndex = gameState.getPlayers().stream()
                 .map(PlayerProfile::getNickname)
@@ -209,19 +203,13 @@ public class LobbyService {
         if (playerIndex != -1) {
             if (entry.getValue() < neededScore) {
                 log.warning("Player " + playerNickname + " did not reach the needed score of " + neededScore);
-                if (gameState.getCurrentPlayer() == gameState.getPlayers().size()) {
-                    gameState.setCurrentPlayer(0); // Recommence au premier joueur
-                }
-                gameState.setCurrentPlayer(gameState.getCurrentPlayer() + 1);
+                incrementCurrentPlayerOrReset(lobbyId, gameState);
                 messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
-
                 return null; // Player did not reach the needed score
             }
             int currentScore = gameState.getScores()[playerIndex];
             gameState.getScores()[playerIndex] = currentScore + 1;
-            this.setGameState(lobbyId, gameState);
             log.info("Solo mini game " + miniGameName + " in lobby " + lobbyId + " won by " + playerNickname);
-//            messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
             PlayerProfile endWinner = checkIfEndGame(lobbyId);
             gameState.setWinner(endWinner != null ? endWinner.getNickname() : null);
         } else {
@@ -229,10 +217,7 @@ public class LobbyService {
         }
 
         resetMinigameResult(lobbyId, miniGameName);
-        gameState.setCurrentPlayer(gameState.getCurrentPlayer() + 1);
-        if (gameState.getCurrentPlayer() == gameState.getPlayers().size()) {
-            gameState.setCurrentPlayer(0); // Recommence au premier joueur
-        }
+        incrementCurrentPlayerOrReset(lobbyId, gameState);
         messaging.convertAndSend("/topic/game/" + lobbyId, gameState);
 
         return new GameController.MiniGameOutcomeDTO(miniGameName, entry.getKey(), entry.getValue());
@@ -270,6 +255,14 @@ public class LobbyService {
         } catch (Exception e) {
             log.warning("Erreur lors de l'envoi de la notif Discord : " + e.getMessage());
         }
+    }
+
+    public void incrementCurrentPlayerOrReset(String lobbyId, GameState state) {
+        state.setCurrentPlayer(state.getCurrentPlayer() + 1);
+        if (state.getCurrentPlayer() == state.getPlayers().size()) {
+            state.setCurrentPlayer(0); // Recommence au premier joueur
+        }
+        this.setGameState(lobbyId, state);
     }
 
 }
