@@ -7,6 +7,9 @@ import {
   Mesh,
   StandardMaterial,
   Color3,
+  EasingFunction,
+  QuadraticEase,
+  ArcRotateCamera,
 } from '@babylonjs/core';
 import { AppendSceneAsync } from '@babylonjs/core/Loading/sceneLoader';
 import { boardTiles } from '../utils/board';
@@ -19,9 +22,11 @@ export class BoardModule {
   private players: TransformNode[] = [];
   private currentIndices: number[] = [];
   private readonly initialHeight = 1.2;
+  private camEase = new QuadraticEase();
 
   constructor(scene: Scene) {
     this.scene = scene;
+    this.camEase.setEasingMode(EasingFunction.EASINGMODE_EASEINOUT);
   }
 
   /**
@@ -241,5 +246,32 @@ export class BoardModule {
   }
   public getPlayerTransform(index: number): TransformNode {
     return this.players[index];
+  }
+
+  /**
+   * Déplace la caméra vers le joueur actif en douceur
+   */
+  public moveCameraToPlayer(playerIndex: number) {
+    const camera = this.scene.activeCamera as ArcRotateCamera;
+    if (!camera) {
+      throw new Error('Aucune caméra active dans la scène');
+    }
+    const playerNode = this.getPlayerTransform(playerIndex);
+    const targetPos = playerNode.getAbsolutePosition();
+    console.log(
+      `Déplacement caméra vers le joueur ${playerIndex} à la position ${targetPos}`,
+    );
+
+    Animation.CreateAndStartAnimation(
+      'cam-target',
+      camera,
+      'target',
+      30, // fps
+      60, // frames totales (~2s)
+      camera.target.clone(),
+      targetPos,
+      Animation.ANIMATIONLOOPMODE_CONSTANT,
+      this.camEase,
+    );
   }
 }

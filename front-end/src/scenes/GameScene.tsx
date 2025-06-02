@@ -235,6 +235,7 @@ const GameScene = () => {
             `Joueur ${gameState.players[i].nickname} avance de ${steps} pas`,
           );
           await boardMod.current.movePlayer(i, steps);
+          await boardMod.current.moveCameraToPlayer(i);
           console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
         }
       }
