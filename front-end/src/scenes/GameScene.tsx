@@ -128,10 +128,10 @@ const GameScene = () => {
     sceneMgr.createScene('endScene', (scene) => {
       importSkyBox(scene);
       // Recherche l'indice du gagnant
-      const playerIdx = gameState.players.findIndex(
-        (p) => p.nickname === nickname,
+      const winnerIdx = gameState.players.findIndex(
+        (p) => p.nickname === gameState.winner,
       );
-      initEndGaming(scene, sceneMgr, playerIdx);
+      initEndGaming(scene, sceneMgr, winnerIdx, nickname);
     });
   }, [gameState]);
 
@@ -235,6 +235,7 @@ const GameScene = () => {
             `Joueur ${gameState.players[i].nickname} avance de ${steps} pas`,
           );
           await boardMod.current.movePlayer(i, steps);
+          await boardMod.current.moveCameraToPlayer(i);
           console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
         }
       }

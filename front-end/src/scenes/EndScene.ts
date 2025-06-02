@@ -8,9 +8,15 @@ import {
   PBRMaterial,
   Color3,
 } from '@babylonjs/core';
-import { AdvancedDynamicTexture, Control, Image } from '@babylonjs/gui';
+import {
+  AdvancedDynamicTexture,
+  Control,
+  Image,
+  Rectangle,
+  TextBlock,
+} from '@babylonjs/gui';
 import { SceneManager } from '../engine/SceneManager';
-import { playerFiles } from '../utils/utils';
+import { playerColors, playerFiles } from '../utils/utils';
 
 const Z_PLANE = 5;
 const OBJECT_SCALE = 1.5;
@@ -21,6 +27,7 @@ export async function initEndGaming(
   scene: Scene,
   sceneManager: SceneManager,
   winner: number | null,
+  nickname: string,
 ): Promise<void> {
   const engine = scene.getEngine();
   const canvas = engine.getRenderingCanvas() as HTMLCanvasElement;
@@ -163,6 +170,71 @@ export async function initEndGaming(
   exitCloud.onPointerUpObservable.add(() => {
     window.location.href = '/';
   });
+
+  // Affichage du nom du gagnant
+
+  // 1) Création du conteneur (rectangle) pour le texte
+  const textBg = new Rectangle('winnerTextBg');
+  textBg.width = '400px';
+  textBg.height = '100px';
+  textBg.cornerRadius = 20;
+  textBg.thickness = 2;
+  textBg.color = 'white';
+  textBg.background = playerColors[winner ?? 0];
+  textBg.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_LEFT;
+  textBg.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
+  textBg.top = '10px';
+  textBg.left = '10px';
+
+  // IMPORTANT : on centre le pivot de toutes les transforms
+  textBg.transformCenterX = 0.5;
+  textBg.transformCenterY = 0.5;
+
+  guiTexture.addControl(textBg);
+
+  // 2) On crée le TextBlock et on le colle DANS le rectangle
+  const winnerText = new TextBlock('winnerText', `${nickname} a gagné !`);
+  winnerText.outlineWidth = 2;
+  winnerText.outlineColor = 'black';
+  winnerText.color = 'white';
+  winnerText.fontSize = 32;
+  winnerText.fontFamily = 'DynaPuff';
+
+  // on centre le texte à l’intérieur du rectangle
+  winnerText.textHorizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+  winnerText.textVerticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+
+  // idem, centre le pivot sur le milieu du TextBlock
+  winnerText.transformCenterX = 0.5;
+  winnerText.transformCenterY = 0.5;
+
+  // on ajoute le TextBlock DANS le rectangle, pas sur le guiTexture directement
+  textBg.addControl(winnerText);
+
+  // 3) (optionnel) animation de pulsation sur le rectangle
+  const pulseX2 = new Animation(
+    'pulseX',
+    'scaleX',
+    30,
+    Animation.ANIMATIONTYPE_FLOAT,
+    Animation.ANIMATIONLOOPMODE_CYCLE,
+  );
+  const pulseY2 = new Animation(
+    'pulseY',
+    'scaleY',
+    30,
+    Animation.ANIMATIONTYPE_FLOAT,
+    Animation.ANIMATIONLOOPMODE_CYCLE,
+  );
+  const keys = [
+    { frame: 0, value: 1 },
+    { frame: 20, value: 1.05 },
+    { frame: 40, value: 1 },
+  ];
+  pulseX2.setKeys(keys);
+  pulseY2.setKeys(keys);
+  textBg.animations = [pulseX2, pulseY2];
+  scene.beginAnimation(textBg, 0, 40, true);
 
   guiTexture.addControl(exitCloud);
 }
