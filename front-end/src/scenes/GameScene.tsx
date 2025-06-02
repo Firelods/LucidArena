@@ -134,7 +134,7 @@ const GameScene = () => {
       const winnerIdx = gameState.players.findIndex(
         (p) => p.nickname === gameState.winner,
       );
-      initEndGaming(scene, sceneMgr, winnerIdx);
+      initEndGaming(scene, sceneMgr, winnerIdx, nickname);
     });
 
     // Démarrage de la boucle et affichage de la scène principale
