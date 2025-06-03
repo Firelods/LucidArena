@@ -127,6 +127,9 @@ const GameScene = () => {
 
   useEffect(() => {
     const sceneMgr = sceneMgrRef.current;
+    if (gameState?.winner != null) {
+      return;
+    }
     if (sceneMgr && introDone && createdScenesRef.current) {
       // 1) On bascule vers la scène principale
       sceneMgr.switchTo('main');
