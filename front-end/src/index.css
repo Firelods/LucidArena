@@ -1,6 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap');
 @import 'tailwindcss';
 
+
+@font-face {
+    font-family: 'DynaPuff';
+    src: url('/assets/DynaPuff-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'DynaPuff';
+    src: url('/assets/DynaPuff-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+}
 
 :root {
     font-family: 'DynaPuff';
