@@ -68,7 +68,7 @@ export function useGameSocket(roomId: string) {
       stomp.deactivate();
     };
   }, [roomId]);
-  // Pour envoyer le roll :
+  // Pour envoyer le roll:
   function rollDice() {
     if (stompRef.current && stompRef.current.connected) {
       console.log(`Rolling dice in room ${roomId}`);

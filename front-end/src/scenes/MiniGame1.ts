@@ -141,7 +141,7 @@ export async function initMiniGame1(
   let fromX = 0;
   let toX = 0;
   const MOVE_DUR = 0.15;
-  let zSpeed = 0.1;
+  const zSpeed = 0.1;
   let score = 0;
 
   // Spawn d’un nuage

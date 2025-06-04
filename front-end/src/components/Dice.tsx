@@ -2,16 +2,16 @@
 import React from 'react';
 
 type Props = {
-    onRoll: (n: number) => void;
+  onRoll: (n: number) => void;
 };
 
 const Dice: React.FC<Props> = ({ onRoll }) => {
-const roll = () => onRoll(Math.floor(Math.random() * 6) + 1)
+  const roll = () => onRoll(Math.floor(Math.random() * 6) + 1);
 
-return (
+  return (
     <button
-    onClick={roll}
-    style={{
+      onClick={roll}
+      style={{
         position: 'absolute',
         bottom: 20,
         right: 20,
@@ -21,20 +21,20 @@ return (
         backgroundColor: '#fff',
         boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
         cursor: 'pointer',
-    }}
+      }}
     >
-    <img
+      <img
         src={'/assets/bouton_dice.png'}
         alt="Roll Dice"
         style={{
-        display: 'block',
-        width: '5rem',
-        height: '5rem',
-        borderRadius: '0.5rem',
+          display: 'block',
+          width: '5rem',
+          height: '5rem',
+          borderRadius: '0.5rem',
         }}
-    />
+      />
     </button>
-)
+  );
 };
 
 export default Dice;

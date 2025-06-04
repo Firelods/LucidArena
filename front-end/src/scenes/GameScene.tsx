@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  forwardRef,
-  useImperativeHandle,
-  useState,
-} from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
@@ -57,7 +51,7 @@ const GameScene = () => {
     // Scène d'introduction
     sceneMgr.createScene('intro', (scene) => {
       importSkyBox(scene);
-      initIntroScene(scene, sceneMgr).then(() => setIntroDone(true));
+      initIntroScene(scene).then(() => setIntroDone(true));
     });
 
     sceneMgr.run();
@@ -170,11 +164,11 @@ const GameScene = () => {
 
     if (w === nickname) {
       setStatus(
-        `Bravo ! Tu as gagné le mini-jeu ${mg} avec un score de ${s} !`,
+        `Bravo ! Tu as gagné le mini-jeu ${mg} avec un score de ${s} !`,
       );
     } else {
       setStatus(
-        `${w} a gagné le mini-jeu ${mg} avec un score de ${s}. À toi de jouer !`,
+        `${w} a gagné le mini-jeu ${mg} avec un score de ${s}. À toi de jouer !`,
       );
     }
   }, [miniGameOutcome]);
@@ -245,8 +239,8 @@ const GameScene = () => {
           console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
         }
       }
-      let lastScores = gameStateRef.current?.scores || [];
-      let newScores = gameState.scores || [];
+      const lastScores = gameStateRef.current?.scores || [];
+      const newScores = gameState.scores || [];
       // regarder si un joueur a gagné un point
       if (lastScores.length > 0 && newScores.length > 0) {
         for (let i = 0; i < newScores.length; i++) {

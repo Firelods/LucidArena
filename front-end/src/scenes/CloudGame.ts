@@ -49,6 +49,7 @@ export async function initCloudGame(
     Vector3.Zero(),
     scene,
   );
+  scene.activeCamera = camera;
 
   // Focus clavier
   const canvas = scene.getEngine().getRenderingCanvas() as HTMLCanvasElement;

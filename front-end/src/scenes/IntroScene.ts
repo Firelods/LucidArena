@@ -9,13 +9,9 @@ import {
   AppendSceneAsync,
 } from '@babylonjs/core';
 import { AdvancedDynamicTexture, Image, Control } from '@babylonjs/gui';
-import { SceneManager } from '../engine/SceneManager';
 import '@babylonjs/loaders/glTF';
 
-export async function initIntroScene(
-  scene: Scene,
-  sceneMgr: SceneManager,
-): Promise<void> {
+export async function initIntroScene(scene: Scene): Promise<void> {
   // 1) Caméra
   const camera = new ArcRotateCamera(
     'introCam',

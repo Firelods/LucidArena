@@ -1,12 +1,21 @@
-import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import {
+  useLocation,
+  useParams,
+  useNavigate,
+  Location,
+} from 'react-router-dom';
 import { useLobbySocket } from './hooks/useLobbySocket';
 import { useEffect } from 'react';
 
+interface LobbyLocationState {
+  name?: string;
+}
+
 export default function Lobby() {
   const { roomId } = useParams();
-  const location = useLocation();
+  const location = useLocation() as Location & { state: LobbyLocationState };
   const navigate = useNavigate();
-  const name = (location.state as any)?.name || 'Anonyme';
+  const name = location.state?.name || 'Anonyme';
   const { players, startGame, started } = useLobbySocket(roomId!, name);
 
   useEffect(() => {
