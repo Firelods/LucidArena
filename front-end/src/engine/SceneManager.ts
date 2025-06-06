@@ -28,7 +28,6 @@ export class SceneManager {
    * - la boucle de rendu ne dessine que cette scène
    */
   switchTo(name: string) {
-    const canvas = this.engine.getRenderingCanvas()!;
     // Détache l'ancienne caméra
     if (this.activeName) {
       const prev = this.scenes[this.activeName];
@@ -39,9 +38,6 @@ export class SceneManager {
 
     // Définit la nouvelle scène active
     this.activeName = name;
-
-    // Attache la nouvelle caméra
-    const next = this.scenes[name];
   }
 
   /**
