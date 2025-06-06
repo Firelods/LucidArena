@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BabylonEngine } from '../engine/BabylonEngine';
 import { BoardModule } from '../modules/BoardModule';
 import { DiceModule } from '../modules/DiceModule';
@@ -17,8 +17,11 @@ import { useAuth } from '../context/AuthContext';
 import { GameStateDTO } from '../dto/GameStateDTO';
 import { initEndGaming } from './EndScene';
 
-const GameScene = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+interface GameSceneProps {
+  canvasRef: React.RefObject<HTMLCanvasElement>;
+}
+
+const GameScene = ({ canvasRef }: GameSceneProps) => {
   const boardMod = useRef<BoardModule>(null!);
   const diceMod = useRef<DiceModule>(null!);
   const sceneMgrRef = useRef<SceneManager>(null);
@@ -58,7 +61,7 @@ const GameScene = () => {
     sceneMgr.switchTo('intro');
 
     return () => engine.getEngine().dispose();
-  }, []);
+  }, [canvasRef]);
 
   // 2) Dès que gameState est non-null, on crée MAIN + mini-jeux & on bascule sur MAIN
   useEffect(() => {
@@ -117,7 +120,7 @@ const GameScene = () => {
       importSkyBox(scene);
       initRainingGame(scene, 10, 0, sceneMgr, onMiniGameEnd);
     });
-  }, [gameState]);
+  }, [gameState, canvasRef, nickname, onMiniGameEnd, rollDice]);
 
   useEffect(() => {
     const sceneMgr = sceneMgrRef.current;
@@ -128,7 +131,7 @@ const GameScene = () => {
       // 1) On bascule vers la scène principale
       sceneMgr.switchTo('main');
     }
-  }, [introDone]);
+  }, [introDone, gameState?.winner]);
 
   // 3) On ne lance le mini-jeu qu'après la fin de la file d'animations
   useEffect(() => {
@@ -148,7 +151,7 @@ const GameScene = () => {
         setStatus(`${p} joue au mini-jeu ${mg}, attends ton tour…`);
       }
     })();
-  }, [miniGameInstr]);
+  }, [miniGameInstr, nickname]);
 
   useEffect(() => {
     if (!miniGameOutcome) return;
@@ -171,7 +174,7 @@ const GameScene = () => {
         `${w} a gagné le mini-jeu ${mg} avec un score de ${s}. À toi de jouer !`,
       );
     }
-  }, [miniGameOutcome]);
+  }, [miniGameOutcome, nickname]);
 
   // 2) À chaque update de gameState, on enfile une nouvelle étape d'animation
   useEffect(() => {

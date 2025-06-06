@@ -1,8 +1,12 @@
 import React from 'react';
 
-const MobileControls = () => {
+interface MobileControlsProps {
+  target?: EventTarget | null;
+}
+
+const MobileControls = ({ target = window }: MobileControlsProps) => {
   const dispatchKey = (key: string) => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+    (target || window).dispatchEvent(new KeyboardEvent('keydown', { key }));
   };
 
   return (
