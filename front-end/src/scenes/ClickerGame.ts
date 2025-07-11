@@ -40,6 +40,7 @@ export async function initClickerGame(
     new Vector3(10, 15, 0),
     scene,
   );
+  scene.activeCamera = camera;
   new HemisphericLight('lightClicker', new Vector3(0, 1, 0), scene).intensity =
     0.7;
 
