@@ -31,9 +31,6 @@ public class LobbyService {
     private final Map<String, HashMap<String, MiniGameResult>> miniGameResults = new ConcurrentHashMap<>();
     private final RestTemplate restTemplate;
 
-    @Value("${webhook.win.url}")
-    private String discordWebhookUrl;
-
     public void createRoom(String roomId) {
         rooms.putIfAbsent(roomId, ConcurrentHashMap.newKeySet());
     }
@@ -226,7 +223,7 @@ public class LobbyService {
                 if (state.getScores()[i] >= 5) { // Assuming 5 is the winning score
                     String winnerNickname = state.getPlayers().get(i).getNickname();
                     int finalScore = state.getScores()[i];
-                    sendDiscordWinNotification(winnerNickname, finalScore);
+                    sendDiscordWinNotification(winnerNickname, finalScore, null);
                     return state.getPlayers().get(i);
                 }
             }
@@ -237,7 +234,7 @@ public class LobbyService {
     }
 
 
-    private void sendDiscordWinNotification(String winner, int score) {
+    private void sendDiscordWinNotification(String winner, int score, @Value("${webhook.win.url}") String discordWebhookUrl) {
         String webhookUrl = discordWebhookUrl;
         String content = String.format(
                 "🏆 **VICTOIRE !**\nJoueur : %s\nScore final : %d\nDate : %s",
