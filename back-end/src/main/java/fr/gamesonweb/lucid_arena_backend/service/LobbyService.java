@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -16,14 +17,6 @@ import fr.gamesonweb.lucid_arena_backend.entity.MiniGameResult;
 import fr.gamesonweb.lucid_arena_backend.entity.PlayerProfile;
 import lombok.AllArgsConstructor;
 import lombok.extern.java.Log;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @AllArgsConstructor
@@ -37,6 +30,9 @@ public class LobbyService {
     // Hashmap of lobbyId to HashMap of miniGameName to MiniGameResult
     private final Map<String, HashMap<String,MiniGameResult>> miniGameResults = new ConcurrentHashMap<>();
     private final RestTemplate restTemplate;
+
+    @Value("${webhook.win.url}")
+    private String discordWebhookUrl;
 
     public void createRoom(String roomId) {
         rooms.putIfAbsent(roomId, ConcurrentHashMap.newKeySet());
@@ -251,7 +247,7 @@ public class LobbyService {
 
 
     private void sendDiscordWinNotification(String winner, int score) {
-        String webhookUrl = "https://discord.com/api/webhooks/1377897437846306836/dLkYXfF2Y6XI-gnrXwsIgkoo_Kycuuns7ophDW1taHBCES2Hx1dJZDUirY4IVXsa_j-p";
+        String webhookUrl = discordWebhookUrl;
         String content = String.format(
                 "🏆 **VICTOIRE !**\nJoueur : %s\nScore final : %d\nDate : %s",
                 winner, score, new java.util.Date()

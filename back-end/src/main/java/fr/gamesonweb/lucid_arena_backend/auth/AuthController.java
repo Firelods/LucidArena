@@ -37,6 +37,9 @@ public class AuthController {
     private String googleClientId;
     @Value("${spring.security.oauth2.resourceserver.jwt.secret}")
     private String jwtSecret;
+    @Value("${webhook.connexion.url}")
+    private String discordWebhookUrl;
+
 
     private final RestTemplate restTemplate;
 
@@ -78,7 +81,7 @@ public class AuthController {
     }
 
     private void sendDiscordNotification(String email) {
-        String webhookUrl = "https://discord.com/api/webhooks/1377876420075847862/fkVlUXgGTwA8-d1SF0yzGSlcTnQu3yRgGSZWq0ZHQDFhCibc4ueggrAcbJ_0Mka8vAfj"; // <-- Mets ici ton URL Discord
+        String webhookUrl = discordWebhookUrl;
         String content = String.format("👤 **Nouvelle connexion !**\nEmail : %s\nHeure : %s",
                 email, new java.util.Date());
     
