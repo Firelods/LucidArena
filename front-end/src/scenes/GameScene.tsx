@@ -123,20 +123,13 @@ const GameScene = () => {
       importSkyBox(scene);
       initRainingGame(scene, 10, 0, sceneMgr, onMiniGameEnd);
     });
-
-    //Scène EndingScene
-    sceneMgr.createScene('endScene', (scene) => {
-      importSkyBox(scene);
-      // Recherche l'indice du gagnant
-      const playerIdx = gameState.players.findIndex(
-        (p) => p.nickname === nickname,
-      );
-      initEndGaming(scene, sceneMgr, playerIdx);
-    });
   }, [gameState]);
 
   useEffect(() => {
     const sceneMgr = sceneMgrRef.current;
+    if (gameState?.winner != null) {
+      return;
+    }
     if (sceneMgr && introDone && createdScenesRef.current) {
       // 1) On bascule vers la scène principale
       sceneMgr.switchTo('main');
@@ -194,6 +187,19 @@ const GameScene = () => {
     animQueueRef.current = (async () => {
       //On vérifie si le jeu n'est pas terminé
       if (gameState.winner != null) {
+        sceneMgrRef.current?.createScene('endScene', (scene) => {
+          importSkyBox(scene);
+          // Recherche l'indice du gagnant
+          const winnerIdx = gameState.players.findIndex(
+            (p) => p.nickname === gameState.winner,
+          );
+          initEndGaming(
+            scene,
+            sceneMgrRef.current!,
+            winnerIdx,
+            gameState.players[winnerIdx]?.nickname || '',
+          );
+        });
         // Si le jeu est terminé, on bascule vers la scène de fin
         sceneMgrRef.current?.switchTo('endScene');
         return;
@@ -235,6 +241,7 @@ const GameScene = () => {
             `Joueur ${gameState.players[i].nickname} avance de ${steps} pas`,
           );
           await boardMod.current.movePlayer(i, steps);
+          await boardMod.current.moveCameraToPlayer(i);
           console.log(`Joueur ${i} déplacé de ${prevPos[i]} à ${nextPos[i]}`);
         }
       }

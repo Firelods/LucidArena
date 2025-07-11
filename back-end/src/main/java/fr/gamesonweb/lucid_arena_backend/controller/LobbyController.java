@@ -130,10 +130,7 @@ public class LobbyController {
         }
 
         if (miniGame.isEmpty()) {
-            state.setCurrentPlayer(state.getCurrentPlayer() + 1);
-            if (state.getCurrentPlayer() == state.getPlayers().size()) {
-                state.setCurrentPlayer(0); // Recommence au premier joueur
-            }
+            lobbyService.incrementCurrentPlayerOrReset(lobbyId, state);
         }
 
         PlayerProfile profile = lobbyService.checkIfEndGame(lobbyId);
